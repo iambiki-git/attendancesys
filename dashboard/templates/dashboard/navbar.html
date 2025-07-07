@@ -12,25 +12,30 @@
       </div>
 
       <!-- Center - Navigation Links -->
-      <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-        <a href="#" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-          Dashboard
-        </a>
-        <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-          Teachers
-        </a>
-        <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-          Students
-        </a>
-        <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-          Attendance
-        </a>
-        <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-          Reports
-        </a>
-      </div>
+     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+  <a href="{% url 'school_admin_dashboard' %}" 
+     class="{% if request.resolver_match.url_name == 'school_admin_dashboard' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Dashboard
+  </a>
+  <a href="" 
+     class="{% if request.resolver_match.url_name == 'teachers' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Teachers
+  </a>
+  <a href="{% url 'students' %}" 
+     class="{% if request.resolver_match.url_name == 'students' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Students
+  </a>
+  <a href="" 
+     class="{% if request.resolver_match.url_name == 'attendance' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Attendance
+  </a>
+  <a href="" 
+     class="{% if request.resolver_match.url_name == 'reports' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Reports
+  </a>
+</div>
 
-      <!-- Right side - User Profile -->
+      {% comment %} <!-- Right side - User Profile -->
       <div class="hidden sm:ml-6 sm:flex sm:items-center">
         <div class="ml-3 relative">
           <div>
@@ -42,7 +47,27 @@
             </button>
           </div>
         </div>
-      </div>
+      </div> {% endcomment %}
+      <!-- Right side - User Profile -->
+<div class="hidden sm:ml-6 sm:flex sm:items-center">
+  <div class="ml-3 relative">
+    <div>
+      <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+        <span class="sr-only">Open user menu</span>
+        <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+          {{ request.user.username|first|upper }}
+        </div>
+      </button>
+    </div>
+    
+    <!-- Dropdown menu -->
+    <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1" id="user-menu">
+      <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Your Profile</a>
+      <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Settings</a>
+      <a href="{% url 'logout_view' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Sign out</a>
+    </div>  
+  </div>
+</div>
 
       <!-- Mobile menu button -->
       <div class="-mr-2 flex items-center sm:hidden">
@@ -54,6 +79,7 @@
           </svg>
         </button>
       </div>
+
     </div>
   </div>
 
@@ -86,7 +112,21 @@
 
 <script>
   // Mobile menu toggle
-  document.querySelector('[aria-controls="mobile-menu"]').addEventListener('click', function() {
+  {% comment %} document.querySelector('[aria-controls="mobile-menu"]').addEventListener('click', function() {
     document.getElementById('mobile-menu').classList.toggle('hidden');
+  }); {% endcomment %}
+
+   const userMenuButton = document.getElementById('user-menu-button');
+  const userMenu = document.getElementById('user-menu');
+  
+  userMenuButton.addEventListener('click', () => {
+    userMenu.classList.toggle('hidden');
+  });
+  
+  // Close the dropdown when clicking outside
+  document.addEventListener('click', (event) => {
+    if (!userMenuButton.contains(event.target) && !userMenu.contains(event.target)) {
+      userMenu.classList.add('hidden');
+    }
   });
 </script>

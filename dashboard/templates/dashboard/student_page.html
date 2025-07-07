@@ -1,0 +1,103 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}School Dashboard{% endblock %}
+{% block content %}
+
+<!-- Add Student Button -->
+<div class="flex justify-end mr-16 mt-5 mb-6">
+  <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded-lg shadow transition flex items-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+    </svg>
+    Add Student
+  </button>
+</div>
+
+<!-- Modal -->
+<div id="studentModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Add New Student</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Form -->
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+            <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+              <option>Select Grade</option>
+              <option>Grade 1</option>
+              <option>Grade 2</option>
+              <option>Grade 3</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+            <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+              <option>Select Section</option>
+              <option>A</option>
+              <option>B</option>
+              <option>C</option>
+            </select>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
+          <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="flex justify-end p-4 border-t space-x-3">
+        <button onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md border">
+          Cancel
+        </button>
+        <button onclick="submitForm()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('studentModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+  
+  function closeModal() {
+    document.getElementById('studentModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+  
+  function submitForm() {
+    // Add your form submission logic here
+    closeModal();
+  }
+  
+  // Close modal when pressing ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+
+{% endblock %}

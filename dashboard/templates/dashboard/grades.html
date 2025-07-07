@@ -1,0 +1,171 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">School Grade Levels</h1>
+        <button onclick="openAddGradeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add Grade Level
+        </button>
+    </div>
+
+    <!-- Grade Levels Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade Level</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 1</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Elementary Level</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="openEditModal(1, 'Grade 1', 'Elementary Level')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">2</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 2</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Elementary Level</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="openEditModal(2, 'Grade 2', 'Elementary Level')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">8</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 8</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Middle School</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="openEditModal(8, 'Grade 8', 'Middle School')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">10</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 10</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">High School</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="openEditModal(10, 'Grade 10', 'High School')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">12</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 12</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">Senior Year</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="openEditModal(12, 'Grade 12', 'Senior Year')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Grade Modal -->
+    <div id="addGradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Add New Grade Level</h3>
+                <button onclick="closeAddGradeModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form>
+                <div class="mb-4">
+                    <label for="gradeNumber" class="block text-sm font-medium text-gray-700 mb-1">Grade Number</label>
+                    <input type="number" id="gradeNumber" min="1" max="12" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 1, 2, 3...12">
+                </div>
+                <div class="mb-4">
+                    <label for="gradeName" class="block text-sm font-medium text-gray-700 mb-1">Grade Name</label>
+                    <input type="text" id="gradeName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Grade 1, First Grade">
+                </div>
+                <div class="mb-4">
+                    <label for="gradeDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="gradeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Optional description (e.g., Elementary Level)"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddGradeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Save Grade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Grade Modal -->
+    <div id="editGradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Edit Grade Level</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form>
+                <input type="hidden" id="editGradeId">
+                <div class="mb-4">
+                    <label for="editGradeNumber" class="block text-sm font-medium text-gray-700 mb-1">Grade Number</label>
+                    <input type="number" id="editGradeNumber" min="1" max="12" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="editGradeName" class="block text-sm font-medium text-gray-700 mb-1">Grade Name</label>
+                    <input type="text" id="editGradeName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="editGradeDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="editGradeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Update Grade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal functions
+    function openAddGradeModal() {
+        document.getElementById('addGradeModal').classList.remove('hidden');
+    }
+
+    function closeAddGradeModal() {
+        document.getElementById('addGradeModal').classList.add('hidden');
+    }
+
+    function openEditModal(id, name, description) {
+        document.getElementById('editGradeId').value = id;
+        document.getElementById('editGradeNumber').value = id;
+        document.getElementById('editGradeName').value = name;
+        document.getElementById('editGradeDescription').value = description;
+        document.getElementById('editGradeModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editGradeModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
