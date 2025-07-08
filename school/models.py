@@ -7,10 +7,10 @@ class Grade(models.Model):
     name = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
-        unique_together = ('school', 'name')
+        unique_together = ('school', 'name', 'grade_number')
 
     def __str__(self):
-        return f"{self.name} ({self.school.name})"
+        return f"{self.grade_number} ({self.school.name})"
     
 class Section(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
@@ -18,16 +18,24 @@ class Section(models.Model):
     name = models.CharField(max_length=10)
     
     class Meta:
-        unique_together = ('grade', 'name')
+        unique_together = ('grade', 'name',)
 
     def __str__(self):
-        return f"{self.name} ({self.grade.name})"
+        if self.grade:
+            return f"{self.name} ({self.grade})"
+        return f"{self.name} (No Grade)"
+
+    # def __str__(self):
+    #     grade_name = self.grade.name if self.grade else "No Grade"
+    #     return f"{self.name} ({grade_name})"
     
 class Student(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True, blank=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
+
+
 
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)

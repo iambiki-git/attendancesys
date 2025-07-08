@@ -6,6 +6,7 @@ from django.contrib import messages
 import requests
 from django.contrib.auth import login, authenticate
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 
 # Create your views here.
 
@@ -135,86 +136,42 @@ def school_dashboard(request):
 
 
 def students_view(request):
-    return render(request, 'dashboard/student_page.html')
+    school = request.user.school
+    grades = Grade.objects.filter(school=school)
+    print(grades)
+    sections = Section.objects.filter(school=school)
+    print(sections)
+
+    context = {
+        'grades': grades,
+        'sections': sections,
+    }
+    return render(request, 'dashboard/student_page.html', context)
+
 
 def grades_view(request):
     school = request.user.school
     grades = Grade.objects.filter(school=school)
 
+    # Create Paginator: 6 items per page
+    paginator = Paginator(grades, 6)
+
+    # Get current page number from GET parameter ?page=
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+
+
     context = {
-        'grades':grades,
+        'page_obj':page_obj,
     }
     return render(request, 'dashboard/grades.html', context)
 
 
-# from django.conf import settings
-# def save_grade(request):
-#     print("Reached save_grade view")
-#     if request.method == 'POST':
-#         level = request.POST.get('level')
-#         name = request.POST.get('name', '').strip()
-#         school = request.user.school
-#         # print(level)
-#         # print(name)
-
-#         # Basic validation
-#         try:
-#             level = int(level)
-#             if level < 1 or level > 12:
-#                 messages.error(request, 'Grade level must be between 1 and 12')
-#                 return redirect('grades')
-#         except (ValueError, TypeError):
-#             messages.error(request, 'Invalid grade level')
-#             return redirect('grades')
-
-#         # Option 1: Save to Database directly (if you have a Grade model)
-#         # from .models import Grade
-#         # Grade.objects.create(level=level, name=name if name else None)
-#         # messages.success(request, 'Grade saved successfully!')
-#         # return redirect('grades')
-
-#         #Check if grades already exists
-#         if Grade.objects.filter(grade_number=level, school=school).exists():
-#             messages.error(request, f'Grades {level} already exists.')
-#             return redirect('grades')
-
-#         # Option 2: Save via API (uncomment and fix this)
-#         access_token = request.session.get('access_token')
-#         #print(access_token)
-
-#         if not access_token:
-#             messages.error(request, 'Not authenticated with API')
-#             return redirect('grades')
-        
-#         try:
-#             response = requests.post(
-#                 f'{settings.API_BASE_URL}grades/',
-#                 json={
-#                     'school': school.id,
-#                     'grade_number': level,
-#                     'name': name if name else None
-#                 },
-#                 headers={
-#                     'Authorization': f'Bearer {access_token}',
-#                     'Content-Type': 'application/json'
-#                 }
-#             )
-            
-#             if response.status_code == 201:
-#                 messages.success(request, 'Grade saved successfully via API!')
-#             else:
-#                 error_msg = response.json().get('detail', 'Unknown API error')
-#                 messages.error(request, f'API Error: {error_msg}')
-                
-#         except requests.exceptions.RequestException as e:
-#             messages.error(request, f'Failed to connect to API: {str(e)}')
-    
-#     return redirect('grades')
-
 from attendancesys.utils import get_valid_access_token
 from django.conf import settings
 @login_required
-def save_edit_grade(request, pk=None):
+def create_edit_grade(request, pk=None):
     # print("Reached save_grade view")
     # print('pk', pk)
 
@@ -278,9 +235,9 @@ def save_edit_grade(request, pk=None):
 
         if response.status_code in [200, 201]:
             if pk is None:
-                messages.success(request, 'Grade created successfully via API!')
+                messages.success(request, 'Grade created successfully!')
             else:
-                messages.success(request, 'Grade updated successfully via API!')
+                messages.success(request, 'Grade updated successfully!')
         else:
             try:
                 error_detail = response.json()
@@ -295,7 +252,7 @@ def save_edit_grade(request, pk=None):
 
 
 
-def save_section(request):
+def create_edit_section(request, pk=None):
     grade_id = request.POST.get('grade_id')
     name = request.POST.get('name')
     school = request.user.school
@@ -308,33 +265,52 @@ def save_section(request):
     if Section.objects.filter(name=name, grade=grade_id, school=school).exists():
         messages.error(request, f'Section {name} already exists.')
         return redirect('grades')
+
     
     access_token = get_valid_access_token(request)
-    print(access_token)
+    #print(access_token)
+
+    payload = {
+        'school': school.id,
+        'grade': grade_id,
+        'name': name
+    }
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
     
     try:
-        response = requests.post(
-            f'{settings.API_BASE_URL}sections/',
-            json={
-                'school': school.id,
-                'grade': grade_id,
-                'name': name if name else None
-            },
-            headers={
-                'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json'
-            }
-        )
-        
-        if response.status_code == 201:
-            messages.success(request, 'Section saved successfully via API!')
+        if pk:
+            # update
+            response = requests.put(
+                f'{settings.API_BASE_URL}sections/{pk}/',
+                json=payload,
+                headers=headers
+            )
+            if response.status_code == 200:
+                messages.success(request, 'Section updated successfully!')
+            else:
+                error_msg = response.json().get('detail', 'Unknown API error')
+                messages.error(request, f'API Error: {error_msg}')
+
         else:
-            error_msg = response.json().get('detail', 'Unknown API error')
-            messages.error(request, f'API Error: {error_msg}')
-            
+            # Create 
+            response = requests.post(
+                f'{settings.API_BASE_URL}sections/',
+                json=payload,
+                headers=headers
+            )
+            if response.status_code == 201:
+                messages.success(request, 'Section created successfully!')
+            else:
+                error_msg = response.json().get('detail', 'Unknown API error')
+                messages.error(request, f'API Error: {error_msg}')
+
     except requests.exceptions.RequestException as e:
         messages.error(request, f'Failed to connect to API: {str(e)}')
-
+             
     return redirect('grades')
 
 def delete_grade(request, pk):
@@ -358,6 +334,39 @@ def delete_grade(request, pk):
 
         if response.status_code == 204:
             messages.success(request, 'Grade deleted successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect('grades')
+
+def delete_section(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('grades')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    api_url = f"{settings.API_BASE_URL}sections/{pk}/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        response = requests.delete(api_url, headers=headers)
+
+        if response.status_code == 204:
+            messages.success(request, 'Section deleted successfully.')
         else:
             try:
                 detail = response.json()

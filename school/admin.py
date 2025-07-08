@@ -4,13 +4,13 @@ from .models import Student, Attendance, Grade, Section
 
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
-    list_display = ('grade_number', 'name', 'school')
+    list_display = ('id', 'grade_number', 'name', 'school')
     list_filter = ('school',)
     search_fields = ('name', 'school__name')
 
 @admin.register(Section)
 class SectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'school', 'grade')
+    list_display = ('id', 'name', 'school', 'grade')
     list_filter = ('school',)
     search_fields = ('name', 'school__name')
 
