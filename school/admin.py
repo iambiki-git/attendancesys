@@ -4,7 +4,7 @@ from .models import Student, Attendance, Grade, Section
 
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'school')
+    list_display = ('grade_number', 'name', 'school')
     list_filter = ('school',)
     search_fields = ('name', 'school__name')
 

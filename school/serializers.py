@@ -4,12 +4,12 @@ from .models import Student, Attendance, Grade, Section
 class GradeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Grade
-        fields = ['id', 'name', 'school']
+        fields = ['id', 'name', 'school', 'grade_number']
 
 class SectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
-        fields = ['id', 'name', 'school']
+        fields = ['id', 'name', 'school', 'grade']
 
 class StudentSerializer(serializers.ModelSerializer):
     grade_name = serializers.CharField(source='grade.name', read_only=True)

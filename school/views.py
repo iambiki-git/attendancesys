@@ -15,7 +15,7 @@ class GradeViewSet(viewsets.ModelViewSet):
         return Grade.objects.filter(school=self.request.user.school)
 
     def perform_create(self, serializer):
-        serializer.save(school=self.request.user.school)
+        serializer.save(school=self.request.user.school)  
 
 class SectionViewSet(viewsets.ModelViewSet):
     serializer_class = SectionSerializer

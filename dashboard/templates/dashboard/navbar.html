@@ -1,5 +1,5 @@
 <nav class="bg-white shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-8xl mx-auto px-20">
     <div class="flex justify-between h-16">
       <!-- Left side - Logo/School Name -->
       <div class="flex items-center">
@@ -24,6 +24,10 @@
   <a href="{% url 'students' %}" 
      class="{% if request.resolver_match.url_name == 'students' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
     Students
+  </a>
+  <a href="{% url 'grades' %}" 
+     class="{% if request.resolver_match.url_name == 'grades' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+    Grades & Sections
   </a>
   <a href="" 
      class="{% if request.resolver_match.url_name == 'attendance' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">

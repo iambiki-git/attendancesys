@@ -1,103 +1,117 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">School Grade Levels</h1>
-        <button onclick="openAddGradeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Add Grade Level
-        </button>
+    <div class="max-w-8xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">School Grade Setup</h1>
+                <p class="text-gray-600">Configure your school's grade levels and sections</p>
+            </div>
+            <button onclick="openGradeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Add Grade
+            </button>
+        </div>
+
+        <!-- Grades List -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            {% for grade in grades %}
+            <div class="border-b border-gray-200 last:border-b-0 p-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <span class="bg-blue-100 text-blue-800 font-medium rounded-lg px-3 py-1 mr-4">
+                            Grade {{ grade.grade_number }}
+                        </span>
+                        <span class="text-gray-700">{% if grade.name %}{{ grade.name }}{% endif %}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="openSectionModal({{ grade.id }})" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Section
+                        </button>
+                        <button onclick="editGrade({{ grade.id }}, '{{ grade.grade_number }}', '{{ grade.name }}')" class="text-blue-600 hover:text-blue-800 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                        </button>
+                        <button onclick="confirmDelete({{ grade.id }})" class="text-red-600 hover:text-red-800 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sections List -->
+                <div class="mt-3 pl-12">
+                    {% if grade.sections.all %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2">
+                        {% for section in grade.sections.all %}
+                        <div class="bg-gray-50 rounded-md p-2 flex justify-between items-center">
+                            <span class="font-medium">{{ section.name }}</span>
+                            <span class="font-sm text-xs">Total Student: 30</span>
+                            <div class="flex space-x-1">
+                                <button onclick="editSection({{ section.id }}, '{{ section.name }}', {{ section.capacity }})" class="text-blue-500 hover:text-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                    </svg>
+                                </button>
+                                <button onclick="confirmDeleteSection({{ section.id }})" class="text-red-500 hover:text-red-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-sm">No sections added yet</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-8 text-center text-gray-500">
+                No grade levels configured yet
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Grade Levels Table -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade Level</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">1</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 1</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">Elementary Level</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(1, 'Grade 1', 'Elementary Level')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button class="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">2</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 2</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">Elementary Level</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(2, 'Grade 2', 'Elementary Level')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button class="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">8</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 8</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">Middle School</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(8, 'Grade 8', 'Middle School')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button class="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">10</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 10</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">High School</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(10, 'Grade 10', 'High School')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button class="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">12</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Grade 12</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">Senior Year</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(12, 'Grade 12', 'Senior Year')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button class="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Add Grade Modal -->
-    <div id="addGradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Add New Grade Level</h3>
-                <button onclick="closeAddGradeModal()" class="text-gray-400 hover:text-gray-500">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Grade Modal -->
+    <div id="gradeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center border-b p-4">
+                <h3 class="text-lg font-medium" id="gradeModalTitle">Add New Grade</h3>
+                <button onclick="closeGradeModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <form>
-                <div class="mb-4">
-                    <label for="gradeNumber" class="block text-sm font-medium text-gray-700 mb-1">Grade Number</label>
-                    <input type="number" id="gradeNumber" min="1" max="12" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., 1, 2, 3...12">
+            <form id="gradeForm" method="POST" action="{% url 'save_grade' %}">
+                {% csrf_token %}
+                <input type="hidden" id="gradeId" name="grade_id">
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="gradeLevel" class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+                        <input type="number" id="gradeLevel" name="level" min="1" max="12" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="gradeName" class="block text-sm font-medium text-gray-700 mb-1">Grade Name(Optional)</label>
+                        <input type="text" id="gradeName" name="name"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               placeholder="e.g., Lily, Daffodil">
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label for="gradeName" class="block text-sm font-medium text-gray-700 mb-1">Grade Name</label>
-                    <input type="text" id="gradeName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Grade 1, First Grade">
-                </div>
-                <div class="mb-4">
-                    <label for="gradeDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="gradeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Optional description (e.g., Elementary Level)"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeAddGradeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <div class="flex justify-end space-x-3 border-t p-4">
+                    <button type="button" onclick="closeGradeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                         Cancel
                     </button>
                     <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
@@ -108,64 +122,144 @@
         </div>
     </div>
 
-    <!-- Edit Grade Modal -->
-    <div id="editGradeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Edit Grade Level</h3>
-                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-500">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Section Modal -->
+    <div id="sectionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="flex justify-between items-center border-b p-4">
+                <h3 class="text-lg font-medium" id="sectionModalTitle">Add New Section</h3>
+                <button onclick="closeSectionModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <form>
-                <input type="hidden" id="editGradeId">
-                <div class="mb-4">
-                    <label for="editGradeNumber" class="block text-sm font-medium text-gray-700 mb-1">Grade Number</label>
-                    <input type="number" id="editGradeNumber" min="1" max="12" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <form method="POST" id="sectionForm" action="{% url 'save_section' %}">
+                {% csrf_token %}
+                <input type="hidden" id="sectionId" name="section_id">
+                <input type="hidden" id="sectionGradeId" name="grade_id">
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="sectionName" class="block text-sm font-medium text-gray-700 mb-1">Section Name</label>
+                        <input type="text" id="sectionName" name="name" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               placeholder="e.g., A, B, Red, Blue">
+                    </div>
+                    {% comment %} <div>
+                        <label for="sectionCapacity" class="block text-sm font-medium text-gray-700 mb-1">Student Capacity</label>
+                        <input type="number" id="sectionCapacity" name="capacity" min="10" max="50" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               value="30">
+                    </div> {% endcomment %}
                 </div>
-                <div class="mb-4">
-                    <label for="editGradeName" class="block text-sm font-medium text-gray-700 mb-1">Grade Name</label>
-                    <input type="text" id="editGradeName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label for="editGradeDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="editGradeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <div class="flex justify-end space-x-3 border-t p-4">
+                    <button type="button" onclick="closeSectionModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                         Cancel
                     </button>
                     <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                        Update Grade
+                        Save Section
                     </button>
                 </div>
             </form>
         </div>
-    </div>
+    </div> 
 </div>
 
+<form id="deleteGradeForm" method="POST" action="" style="display: none;">
+  {% csrf_token %}
+</form>
+
+{% if messages %}
+{% for message in messages %}
+    <p>{{ message }}</p>
+{% endfor %}
+{% endif %}
 <script>
-    // Modal functions
-    function openAddGradeModal() {
-        document.getElementById('addGradeModal').classList.remove('hidden');
+    // Grade Functions
+    function openGradeModal() {
+        document.getElementById('gradeForm').action = "{% url 'save_grade' %}";
+        
+        document.getElementById('gradeId').value = '';
+        document.getElementById('gradeLevel').value = '';
+        document.getElementById('gradeName').value = '';
+        document.getElementById('gradeModal').classList.remove('hidden');
     }
 
-    function closeAddGradeModal() {
-        document.getElementById('addGradeModal').classList.add('hidden');
+    function editGrade(id, level, name) {
+        document.getElementById('gradeModalTitle').textContent = 'Edit Grade';
+
+        const urlTemplate = "{% url 'save_grade' 0 %}"; // this renders as /grades/edit/0/
+        const editUrl = urlTemplate.replace('0', id);
+        document.getElementById('gradeForm').action = editUrl;
+
+        document.getElementById('gradeId').value = id;
+        document.getElementById('gradeLevel').value = level;
+        //document.getElementById('gradeLevel').disabled = true;
+        document.getElementById('gradeName').value = name;
+        document.getElementById('gradeModal').classList.remove('hidden');
     }
 
-    function openEditModal(id, name, description) {
-        document.getElementById('editGradeId').value = id;
-        document.getElementById('editGradeNumber').value = id;
-        document.getElementById('editGradeName').value = name;
-        document.getElementById('editGradeDescription').value = description;
-        document.getElementById('editGradeModal').classList.remove('hidden');
+    function closeGradeModal() {
+        document.getElementById('gradeModal').classList.add('hidden');
     }
 
-    function closeEditModal() {
-        document.getElementById('editGradeModal').classList.add('hidden');
+    function confirmDelete(gradeId) {
+        if (confirm('Are you sure you want to delete this grade? All sections will also be deleted.')) {
+            const urlTemplate = "{% url 'delete_grade' 0 %}";  // e.g., /grades/delete/0/
+            const finalUrl = urlTemplate.replace('0', gradeId);
+
+            const form = document.getElementById('deleteGradeForm');
+            form.action = finalUrl;
+
+            form.submit();
+        }
+        }
+
+
+    // Section Functions
+    function openSectionModal(gradeId) {
+        //document.getElementById('sectionModalTitle').textContent = 'Add New Section';
+        //document.getElementById('sectionForm').action = "";
+        //document.getElementById('sectionId').value = '';
+        document.getElementById('sectionGradeId').value = gradeId;
+        //document.getElementById('sectionName').value = '';
+        //document.getElementById('sectionCapacity').value = '30';
+        document.getElementById('sectionModal').classList.remove('hidden');
+    }
+
+    function editSection(id, name, capacity) {
+        document.getElementById('sectionModalTitle').textContent = 'Edit Section';
+        //document.getElementById('sectionForm').action = "";
+        document.getElementById('sectionId').value = id;
+        document.getElementById('sectionName').value = name;
+        document.getElementById('sectionCapacity').value = capacity;
+        document.getElementById('sectionModal').classList.remove('hidden');
+    }
+
+    function closeSectionModal() {
+        document.getElementById('sectionModal').classList.add('hidden');
+    }
+
+    function confirmDeleteSection(id) {
+        if (confirm('Are you sure you want to delete this section?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "";
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = '{{ csrf_token }}';
+            form.appendChild(csrf);
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'section_id';
+            idInput.value = id;
+            form.appendChild(idInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
 </script>
 {% endblock %}
