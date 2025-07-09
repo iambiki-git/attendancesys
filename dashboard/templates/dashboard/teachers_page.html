@@ -1,170 +1,195 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
-{% comment %} 
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-3xl mx-auto">
-        <!-- Page Header -->
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Add New Teacher</h1>
-            <p class="text-gray-600">Fill in the teacher details and assign classes</p>
-        </div>
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Teacher Management</h1>
+    
+    <!-- Toggle Button for Form -->
+    <button id="toggleFormBtn" class="mb-4 flex items-center text-sm bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+        <svg id="toggleIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+        Create New Teacher
+    </button>
 
-        <!-- Teacher Form -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <form>
-                <!-- Personal Information Section -->
-                <div class="mb-8">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Personal Information</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- First Name -->
-                        <div>
-                            <label for="first-name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                            <input type="text" id="first-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <!-- Last Name -->
-                        <div>
-                            <label for="last-name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                            <input type="text" id="last-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <!-- Email -->
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <!-- Phone -->
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                            <input type="tel" id="phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
+    <!-- Collapsible Form -->
+    <div id="teacherForm" class="hidden bg-white rounded-lg shadow-md overflow-hidden mb-8 border border-gray-200">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Teacher Information</h2>
+            <form method="POST" action="{% url 'create_teacher' %}" class="space-y-4">
+                {% csrf_token %}
+                
+                <!-- Basic Info -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="firstName" class="block text-xs font-medium text-gray-600 mb-1">First Name*</label>
+                        <input type="text" id="firstName" name="first_name" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="lastName" class="block text-xs font-medium text-gray-600 mb-1">Last Name*</label>
+                        <input type="text" id="lastName" name="last_name" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     </div>
                 </div>
 
-                <!-- Teacher Details Section -->
-                <div class="mb-8">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Teacher Details</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Teacher ID -->
-                        <div>
-                            <label for="teacher-id" class="block text-sm font-medium text-gray-700 mb-1">Teacher ID</label>
-                            <input type="text" id="teacher-id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <!-- Subjects -->
-                        <div>
-                            <label for="subjects" class="block text-sm font-medium text-gray-700 mb-1">Subjects</label>
-                            <select id="subjects" multiple class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option>Mathematics</option>
-                                <option>Science</option>
-                                <option>English</option>
-                                <option>Nepali</option>
-                                <option>Social Studies</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
-                        </div>
+                <!-- Credentials -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="username" class="block text-xs font-medium text-gray-600 mb-1">Username*</label>
+                        <input type="text" id="username" name="username" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-xs font-medium text-gray-600 mb-1">Password*</label>
+                        <input type="password" id="password" name="password" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     </div>
                 </div>
 
-                <!-- Class Assignment Section -->
-                <div class="mb-6">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Class Assignment</h2>
-                    
-                    <!-- Class Teacher Toggle -->
-                    <div class="flex items-center mb-6">
-                        <label class="inline-flex items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer">
-                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            <span class="ms-3 text-sm font-medium text-gray-700">Class Teacher</span>
-                        </label>
+                <!-- Contact Info -->
+                <div>
+                    <label for="email" class="block text-xs font-medium text-gray-600 mb-1">Email*</label>
+                    <input type="email" id="email" name="email" required
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+
+                <!-- Academic Info -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="subject" class="block text-xs font-medium text-gray-600 mb-1">Subject*</label>
+                        <select id="subject" name="subject" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">Select subject</option>
+                            <option>Mathematics</option>
+                            <option>Science</option>
+                            <option>English</option>
+                            <option>Social Studies</option>
+                            <option>Computer Science</option>
+                        </select>
                     </div>
-                    
-                    <!-- Class Selection -->
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <!-- Grade -->
-                            <div>
-                                <label for="grade" class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
-                                <select id="grade" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Select Grade</option>
-                                    <option>1</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                    <option>6</option>
-                                    <option>7</option>
-                                    <option>8</option>
-                                    <option>9</option>
-                                    <option>10</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Section -->
-                            <div>
-                                <label for="section" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
-                                <select id="section" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Select Section</option>
-                                    <option>A</option>
-                                    <option>B</option>
-                                    <option>C</option>
-                                    <option>D</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Add Button -->
-                            <div class="flex items-end">
-                                <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-200">
-                                    Add Class
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Assigned Classes Table -->
-                        <div class="border border-gray-200 rounded-lg overflow-hidden">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
-                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">10</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">A</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
-                                            <button class="text-red-600 hover:text-red-800">Remove</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">9</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">B</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
-                                            <button class="text-red-600 hover:text-red-800">Remove</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+        <label for="gradeLevel" class="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
+        <select id="gradeLevel" name="grade_level" 
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="">Select grade</option>
+            {% for grade in grades %}
+            <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="section" class="block text-xs font-medium text-gray-600 mb-1">Section</label>
+        <select id="sectionSelect" name="section"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="">Select section</option>
+            {% for section in sections %}
+            <option value="{{ section.id }}" data-grade="{{ section.grade.id }}">
+                {{ section.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
                 </div>
 
                 <!-- Form Actions -->
-                <div class="flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelFormBtn" class="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
                         Cancel
                     </button>
-                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        Save Teacher
+                    <button type="submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        Create Teacher
                     </button>
                 </div>
             </form>
         </div>
     </div>
-</div> {% endcomment %}
+
+    <!-- Existing Teachers Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">Teacher List</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for teacher in teachers %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ teacher.id }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ teacher.user.first_name }} {{ teacher.user.last_name }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ teacher.subjects }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ teacher.grade.grade_number }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ teacher.section.name|default:"-" }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-3 text-xs">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 text-xs">Remove</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('teacherForm');
+    const toggleBtn = document.getElementById('toggleFormBtn');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const cancelBtn = document.getElementById('cancelFormBtn');
+
+    toggleBtn.addEventListener('click', function() {
+        form.classList.toggle('hidden');
+        if (form.classList.contains('hidden')) {
+            toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>';
+        } else {
+            toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>';
+        }
+    });
+
+    cancelBtn.addEventListener('click', function() {
+        form.classList.add('hidden');
+        toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>';
+    });
+});
+
+
+{% comment %} dynamically show sections {% endcomment %}
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeSelect = document.getElementById('gradeLevel');
+    const sectionSelect = document.getElementById('sectionSelect');
+    const sectionsByGrade = JSON.parse('{{ sections_by_grade|escapejs }}');
+
+    gradeSelect.addEventListener('change', function() {
+        const gradeId = this.value;
+        
+        // Clear existing options except the first one
+        while (sectionSelect.options.length > 1) {
+            sectionSelect.remove(1);
+        }
+
+        // Add sections for selected grade
+        if (gradeId && sectionsByGrade[gradeId]) {
+            sectionsByGrade[gradeId].forEach(section => {
+                const option = new Option(section.name, section.id);
+                sectionSelect.add(option);
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'users',
     'school',
     'dashboard',
+    'superadmin',
 
     # third-party apps
     'rest_framework',

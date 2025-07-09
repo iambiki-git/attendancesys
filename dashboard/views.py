@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
-from school.models import Student, Attendance, Grade, Section
+from school.models import Student, Attendance, Grade, Section, TeacherProfile
+from users.models import School
 from django.contrib import messages
 import requests
 from django.contrib.auth import login, authenticate
@@ -107,9 +108,12 @@ def logout_view(request):
     # Step 3: Redirect to login
     return redirect('/')  # Make sure 'login' name matches your login path
 
-
+from django.http import HttpResponseForbidden
 @login_required(login_url='/')
 def school_dashboard(request):
+    if not request.user.is_staff and not request.user.is_school_admin:
+        return HttpResponseForbidden("You are not authorized to access this page.")
+    
     school = request.user.school
     students = Student.objects.filter(school=school)
     grades = Grade.objects.filter(school=school)
@@ -189,6 +193,9 @@ from django.core.serializers.json import DjangoJSONEncoder
 import json
 
 def students_view(request):
+    if not request.user.is_staff and not request.user.is_school_admin:
+        return HttpResponseForbidden("You are not authorized to access this page.")
+    
     school = request.user.school
     grades = Grade.objects.filter(school=school).order_by('grade_number')
     sections = Section.objects.filter(school=school).order_by('name')
@@ -309,40 +316,45 @@ def create_student(request):
 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+
+
+def update_student(request):
+    try:
+        student_id = request.POST.get('student_id')
+        name = request.POST.get('name')
+        roll_no = request.POST.get('roll_no')
         
-
-# def delete_student(request, pk):
-#     if request.method != 'POST':
-#         messages.error(request, 'Invalid request method.')
-#         return redirect('students')
-
-#     access_token = get_valid_access_token(request)
-#     if not access_token:
-#         messages.error(request, 'Session expired. Please log in again.')
-#         return redirect('login')
-
-#     api_url = f"{settings.API_BASE_URL}students/{pk}/"
-#     headers = {
-#         'Authorization': f'Bearer {access_token}',
-#         'Content-Type': 'application/json',
-#     }
-
-#     try:
-#         response = requests.delete(api_url, headers=headers)
-
-#         if response.status_code == 204:
-#             messages.success(request, 'Student deleted successfully.')
-#         else:
-#             try:
-#                 detail = response.json()
-#             except Exception:
-#                 detail = response.text
-#             messages.error(request, f"API Error: {detail}")
-
-#     except requests.exceptions.RequestException as e:
-#         messages.error(request, f"Failed to connect to API: {str(e)}")
-
-#     return redirect(f"/students/?grade_id={grade_id}&section_id={section_id}")
+        if not all([student_id, name, roll_no]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing required fields'
+            }, status=400)
+        
+        student = Student.objects.get(id=student_id)
+        student.name = name
+        student.roll_number = roll_no
+        student.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Student information updated successfully!',
+            'updated_data': {
+                'name': name,
+                'roll_no': roll_no
+            }
+        })
+        
+    except Student.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Student not found'
+        }, status=404)
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
 
 
 def delete_student(request, pk):
@@ -390,6 +402,9 @@ def delete_student(request, pk):
 
 
 def grades_view(request):
+    if not request.user.is_staff and not request.user.is_school_admin:
+        return HttpResponseForbidden("You are not authorized to access this page.")
+    
     school = request.user.school
     grades = Grade.objects.filter(school=school).order_by('grade_number')
 
@@ -446,7 +461,7 @@ def create_edit_grade(request, pk=None):
     #access_token = request.session.get('access_token')
     access_token = get_valid_access_token(request)
 
-    print(access_token)
+    #print(access_token)
     if not access_token:
         messages.error(request, 'Not authenticated with API')
         return redirect('grades')
@@ -626,4 +641,104 @@ def delete_section(request, pk):
 
 
 def teachers_view(request):
-    return render(request, 'dashboard/teachers_page.html')
+    if not request.user.is_staff and not request.user.is_school_admin:
+        return HttpResponseForbidden("You are not authorized to access this page.")
+    
+    school = request.user.school
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
+    sections = Section.objects.filter(school=school).order_by('name')
+
+    teachers = TeacherProfile.objects.filter(school=school)
+
+    # Prepare sections data grouped by grade
+    sections_by_grade = {}
+    for grade in grades:
+        sections_by_grade[grade.id] = [
+            {'id': section.id, 'name': section.name} 
+            for section in sections.filter(grade=grade)
+        ]
+
+    context = {
+        'grades': grades,
+        'sections': sections,  # All sections for initial load
+        'sections_by_grade': json.dumps(sections_by_grade),
+        'teachers': teachers
+    }
+    return render(request, 'dashboard/teachers_page.html', context)
+
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+def create_teacher(request):
+    if request.method == "POST":
+        username = request.POST.get('username')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        grade_id = request.POST.get('grade_level')
+        section_id = request.POST.get('section')
+        subjects = request.POST.get('subject')
+
+        # Validate required fields
+        if not all([username, email, password, grade_id, section_id]):
+            messages.error(request, "All required fields must be filled.")
+            return redirect('teachers')
+
+        # Check for duplicates
+        if User.objects.filter(username=username).exists():
+            messages.warning(request, "Username already taken.")
+            return redirect('teachers')
+
+        if User.objects.filter(email=email).exists():
+            messages.warning(request, "Email already registered.")
+            return redirect('teachers')
+
+        try:
+            school = request.user.school  # Logged-in admin को school
+
+            # ✅ Create teacher user
+            teacher_user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                school=school,
+                is_teacher=True
+            )
+
+            # ✅ Get Grade and Section
+            grade = Grade.objects.get(id=grade_id, school=school)
+            section = Section.objects.get(id=section_id, school=school)
+
+            # ✅ Create TeacherProfile & link Grade, Section, Subject
+            profile = TeacherProfile.objects.create(
+                user=teacher_user,
+                school=school,
+                subjects=subjects
+            )
+            profile.grades.add(grade)
+            profile.sections.add(section)
+
+            messages.success(request, f"Teacher '{username}' created successfully!")
+            return redirect('teachers')
+
+        except Exception as e:
+            if 'teacher_user' in locals():
+                teacher_user.delete()
+            messages.error(request, f"Error creating teacher: {str(e)}")
+            return redirect('teachers')
+
+    # GET: Render form with Grade & Section dropdown
+    grades = Grade.objects.filter(school=request.user.school)
+    sections = Section.objects.filter(school=request.user.school)
+    return render(request, 'teachers/create_teacher.html', {
+        'grades': grades,
+        'sections': sections
+    })
+
+
+def teacher_dashboard(request):
+    return render(request, 'dashboard/teachers/teacher_dashboard.html')

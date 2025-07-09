@@ -34,17 +34,32 @@ class Student(models.Model):
     roll_number = models.PositiveIntegerField()
 
 
-# class Teacher(models.Model):
-#     school = models.ForeignKey('School', on_delete=models.CASCADE)
-#     name = models.CharField(max_length=100)
-#     email = models.EmailField(unique=True)
-#     grade = models.ForeignKey('Grade', on_delete=models.SET_NULL, null=True, blank=True)
-#     section = models.ForeignKey('Section', on_delete=models.SET_NULL, null=True, blank=True)
+from django.conf import settings
+class TeacherProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+    # 👉 Specific class teacher role
+    grade = models.ForeignKey(
+        Grade,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    section = models.OneToOneField(
+        Section,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    subjects = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"TeacherProfile: {self.user.username}"
+
     
-#     def __str__(self):
-#         return f"{self.name} ({self.email})"
-
-
+    
 
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)

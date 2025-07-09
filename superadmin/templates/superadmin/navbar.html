@@ -1,0 +1,43 @@
+<nav class="bg-indigo-600 text-white">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex justify-between h-16 items-center">
+      <!-- Logo/Brand -->
+      <div class="flex items-center">
+        <span class="text-xl font-semibold">AdminPanel</span>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="hidden md:flex space-x-1">
+        <a href="#" class="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-700">Dashboard</a>
+        <a href="{% url 'school_list' %}" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition">School</a>
+        <a href="#" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition">Users</a>
+        <a href="#" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition">Settings</a>
+        <a href="#" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-500 transition">Reports</a>
+      </div>
+
+      <!-- User Profile -->
+      <div class="relative">
+        <button class="flex items-center space-x-1 focus:outline-none" id="user-menu">
+          <div class="h-8 w-8 rounded-full bg-indigo-800 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <span class="hidden md:inline">Admin</span>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" id="user-dropdown">
+          <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+          <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+  document.getElementById('user-menu').addEventListener('click', function() {
+    document.getElementById('user-dropdown').classList.toggle('hidden');
+  });
+</script>

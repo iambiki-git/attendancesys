@@ -15,10 +15,14 @@ urlpatterns = [
     path('section/delete/<int:pk>/', delete_section, name='delete_section'),
 
     path('create/students/', create_student, name='create_student'),
-   # path('students/update/<int:pk>/', update_student, name='update_student'),
+    path('students/update/', update_student, name='update_student'),
     path('students/delete/<int:pk>/', delete_student, name='delete_student'),
 
     path('teachers/', teachers_view, name='teachers'),
+    path('teacher/create/', create_teacher, name='create_teacher'),
+
+    #Teacher dashboard
+    path('teacher/dashboard/', teacher_dashboard, name='teacher_dashboard'),
     
 
 ]

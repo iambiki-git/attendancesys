@@ -25,6 +25,7 @@ urlpatterns = [
     # Core app URLs
     path('', include('school.urls')),
     path('', include('dashboard.urls')),
+    path('', include('superadmin.urls')),
 
     # DRF auth and JWT
     path('api/auth/', include('rest_framework.urls')),  # browsable API login
