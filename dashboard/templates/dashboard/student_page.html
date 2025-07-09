@@ -1,459 +1,335 @@
 {% extends "dashboard/base.html" %}
+
 {% block content %}
-<!-- Enhanced Header with Bulk Actions -->
-<div class="bg-gray-100 p-4 sticky top-0 z-10 shadow-sm">
-  <div class="max-w-6xl mx-auto flex flex-wrap items-center gap-4">
-    <div class="flex-1 min-w-[250px]">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Grade & Section</label>
-      <div class="flex gap-2">
-        <select id="gradeSelect" class="flex-1 px-3 py-2 border rounded-lg focus:ring-blue-500">
-          <option value="">Select Grade</option>
-          {% if grades %}
-          {% for grade in grades %}
-          {% comment %} {% for i in range(1, 13) %} {% endcomment %}
-          <option>Grade {{ grade.grade_number }}</option>
-          {% comment %} {% endfor %} {% endcomment %}
-          {% endfor %}
-          {% endif %}
-        </select>
-        <select id="sectionSelect" class="w-24 px-3 py-2 border rounded-lg focus:ring-blue-500">
-          <option value="">Section</option>
-          {% comment %} {% for section in ['A','B','C','D','E'] %} {% endcomment %}
-          {% if sections %}
+<div class="max-w-7xl mx-auto p-4 flex flex-col items-center">
+  <h1 class="text-2xl font-bold mb-2 py-4">View Students</h1>
+
+  <!-- Filters -->
+  <form method="get" class="flex flex-wrap gap-4 mb-4" id="studentFilterForm">
+    <div>
+      <label class="block text-sm mb-1">Grade</label>
+      <select id="gradeSelect" name="grade_id" class="border px-3 py-2 rounded" required>
+        <option value="">-- Select Grade --</option>
+        {% for grade in grades %}
+          <option value="{{ grade.id }}" {% if grade.id|stringformat:"s" == selected_grade %}selected{% endif %}>
+            Grade {{ grade.grade_number }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm mb-1">Section</label>
+      <select id="sectionSelect" name="section_id" class="border px-3 py-2 rounded" required>
+        <option value="">-- Select Section --</option>
+        {% if sections %}
           {% for section in sections %}
-          <option>{{ section }}</option>
-          {% comment %} {% endfor %} {% endcomment %}
+            <option value="{{ section.id }}" {% if section.id|stringformat:"s" == selected_section %}selected{% endif %}>
+              {{ section.name }}
+            </option>
           {% endfor %}
-          {% endif %}
-        </select>
-      </div>
+        {% endif %}
+      </select>
     </div>
-    
-    <div class="flex gap-2 items-end">
-      <button onclick="loadClassStudents()" 
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-        </svg>
-        Load
-      </button>
-      
-      <div class="relative" x-data="{ open: false }">
-        <button @click="open = !open" 
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+
+    <div class="flex items-end gap-4">
+      {% if request.GET.grade_id and request.GET.section_id %}
+        <button type="button" onclick="addNewStudentRow()" class="bg-green-600 text-white px-4 py-2 rounded">
+          Add Student
+        </button>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Table and Empty State -->
+  {% if request.GET.grade_id and request.GET.section_id %}
+    <div class="mt-6">
+      <!-- Empty state message (shown when no students) -->
+      <div id="noStudentsMessage" class="text-gray-600 p-4 bg-gray-50 rounded-lg mb-4" 
+           style="display: {% if students %}none{% else %}block{% endif %};">
+        No students found for the selected Grade & Section.
+      </div>
+
+      <!-- Student Table (shown when students exist or when adding new) -->
+      <table class="min-w-7xl divide-y divide-gray-200 shadow-sm rounded-lg overflow-hidden" 
+             id="studentsTable" style="display: {% if students %}block{% else %}none{% endif %};">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200" id="studentsTableBody">
+          {% for student in students %}
+            <tr class="hover:bg-gray-50 transition-colors duration-150" id="student-{{ student.id }}">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ student.name }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                  Grade {{ student.grade.grade_number }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  {{ student.section.name }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ student.roll_number }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                  <!-- Edit Button -->
+                  <button onclick="editStudent('{{ student.id }}')" 
+                          class="text-indigo-600 hover:text-indigo-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                  
+                  <!-- Delete Button -->
+                  <button onclick="confirmDelete('{{ student.id }}', '{{ request.GET.grade_id }}', '{{ request.GET.section_id }}')" 
+                          class="text-red-600 hover:text-red-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Template for new student row (hidden by default) -->
+<template id="newStudentRowTemplate">
+  <tr class="bg-blue-50" id="newStudentRow">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      <span id="newRowNumber"></span>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="newStudentName" class="border px-2 py-1 rounded text-sm w-full" placeholder="Full Name">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+        Grade {{ selected_grade_obj.grade_number }}
+      </span>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+        {{ selected_section_obj.name }}
+      </span>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="number" id="newStudentRollNo" class="border px-2 py-1 rounded text-sm w-full" placeholder="Roll No">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+      <div class="flex space-x-2">
+        <button onclick="saveNewStudent()" class="text-green-600 hover:text-green-900">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-          </svg>
-          Add
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
         </button>
-        
-        <div x-show="open" @click.away="open = false" 
-             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
-          <div class="py-1">
-            <a href="#" onclick="openAddStudentModal()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Single Student</a>
-            <a href="#" onclick="openBulkImportModal()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bulk Import</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="ml-auto flex items-center gap-4">
-      <div class="text-sm bg-white px-3 py-1 rounded-lg border">
-        <span id="studentCount">0</span> students
-      </div>
-      <button onclick="printClassRoster()" class="text-gray-600 hover:text-gray-900">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-        </svg>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Main Content Area -->
-<div class="max-w-6xl mx-auto p-4">
-  <!-- Class Information Card -->
-  <div id="classInfoCard" class="hidden bg-white rounded-lg shadow-md p-4 mb-6 border-l-4 border-blue-500">
-    <div class="flex justify-between items-start">
-      <div>
-        <h3 class="font-bold text-xl text-gray-800" id="selectedClassHeader">
-          <span id="currentGrade"></span> - Section <span id="currentSection"></span>
-        </h3>
-        <div class="flex gap-4 mt-2 text-sm">
-          <div class="flex items-center text-green-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span id="maleCount">0</span> Boys
-          </div>
-          <div class="flex items-center text-pink-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span id="femaleCount">0</span> Girls
-          </div>
-        </div>
-      </div>
-      <button onclick="exportClassData()" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded flex items-center gap-1">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        Export
-      </button>
-    </div>
-  </div>
-
-  <!-- Student Table with Enhanced Features -->
-  <div class="bg-white rounded-lg shadow overflow-hidden">
-    <table id="studentsTable" class="min-w-full divide-y divide-gray-200 hidden">
-      <thead class="bg-gray-50">
-        <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-            Roll No.
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Student Name
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-            Gender
-          </th>
-          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody id="studentsTableBody" class="bg-white divide-y divide-gray-200">
-        <!-- Dynamically populated -->
-      </tbody>
-    </table>
-    
-    <!-- Enhanced Empty State -->
-    <div id="emptyState" class="text-center py-16">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-      <h3 class="mt-4 text-lg font-medium text-gray-700">No class selected</h3>
-      <p class="mt-1 text-sm text-gray-500 max-w-md mx-auto">
-        Select a grade and section to view or manage students. You can add individual students or import a complete class list.
-      </p>
-      <div class="mt-6">
-        <button onclick="openAddStudentModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none">
-          Add First Student
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Add Student Modal -->
-<div id="studentModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-  <div class="flex items-center justify-center min-h-screen p-4">
-    <div class="fixed inset-0 bg-black/50 transition-opacity" onclick="closeModal()"></div>
-    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b">
-        <h3 class="text-lg font-semibold text-gray-900" id="modalTitle">Add New Student</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <button onclick="cancelNewStudent()" class="text-red-600 hover:text-red-900">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
         </button>
       </div>
-      
-      <!-- Form -->
-      <div class="p-6 space-y-4">
-        <input type="hidden" id="editStudentId">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-          <input type="text" id="studentName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
-            <input type="text" id="rollNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-            <select id="gender" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
-              <option value="">Select</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Parent Contact</label>
-          <input type="tel" id="parentContact" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-        </div>
-      </div>
-      
-      <!-- Footer -->
-      <div class="flex justify-between p-4 border-t">
-        <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md border">
-          Cancel
-        </button>
-        <div class="space-x-3">
-          <button type="button" onclick="saveAndAddAnother()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md border">
-            Save & Add Another
-          </button>
-          <button type="button" onclick="saveStudent()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow">
-            Save Student
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+    </td>
+  </tr>
+</template>
 
-<!-- Bulk Import Modal -->
-<div id="bulkImportModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-  <!-- Similar structure to student modal but for CSV import -->
-</div>
+<form id="deleteStudentForm" method="POST" action="" style="display: none;">
+  {% csrf_token %}
+  <input type="hidden" name="grade_id" id="deleteGradeId">
+  <input type="hidden" name="section_id" id="deleteSectionId">
+</form>
 
 <script>
-// Enhanced JavaScript with real-world features
-let currentClass = { grade: null, section: null };
-let studentsData = [];
-
-function loadClassStudents() {
-  const grade = document.getElementById('gradeSelect').value;
-  const section = document.getElementById('sectionSelect').value;
+  const sectionsByGrade = {{ sections_by_grade|safe }};
+  const gradeSelect = document.getElementById('gradeSelect');
+  const sectionSelect = document.getElementById('sectionSelect');
+  const selectedSection = "{{ selected_section }}";
+  const filterForm = document.getElementById('studentFilterForm');
   
-  if (!grade || !section) {
-    showAlert('Please select both grade and section', 'error');
-    return;
+  // Track previous values to prevent unnecessary submissions
+  let previousGrade = gradeSelect.value;
+  let previousSection = sectionSelect.value;
+
+  function updateSections() {
+    const gradeId = gradeSelect.value;
+    const sections = sectionsByGrade[gradeId] || [];
+    sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+    sections.forEach(([id, name]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = name;
+      if (id.toString() === selectedSection) {
+        opt.selected = true;
+      }
+      sectionSelect.appendChild(opt);
+    });
+    
+    // Only submit if grade changed and both fields are selected
+    if (gradeId && gradeId !== previousGrade && sectionSelect.value) {
+      previousGrade = gradeId;
+      filterForm.submit();
+    }
   }
 
-  currentClass = { grade, section };
-  
-  // Show loading state
-  document.getElementById('emptyState').innerHTML = `
-    <div class="flex flex-col items-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-      <p>Loading students for ${grade}-${section}...</p>
-    </div>
-  `;
-  
-  // Simulate API call
-  setTimeout(() => {
-    // Mock data - in real app this would come from your backend
-    studentsData = generateMockStudents(grade, section);
-    renderClassView();
-  }, 800);
-}
+  function autoSubmitForm() {
+    const currentGrade = gradeSelect.value;
+    const currentSection = sectionSelect.value;
+    
+    // Only submit if both fields are selected AND either grade or section changed
+    if (currentGrade && currentSection && 
+        (currentGrade !== previousGrade || currentSection !== previousSection)) {
+      previousGrade = currentGrade;
+      previousSection = currentSection;
+      filterForm.submit();
+    }
+  }
 
-function generateMockStudents(grade, section) {
-  const count = Math.floor(Math.random() * 15) + 10; // 10-24 students
-  const students = [];
-  
-  for (let i = 1; i <= count; i++) {
-    const gender = Math.random() > 0.5 ? 'male' : 'female';
-    students.push({
-      id: `${grade.charAt(grade.length-1)}${section}${i.toString().padStart(2, '0')}`,
-      rollNumber: i,
-      name: gender === 'male' ? 
-        `Male Student ${i}` : `Female Student ${i}`,
-      gender,
-      parentContact: `98${Math.floor(10000000 + Math.random() * 90000000)}`
+  function addNewStudentRow() {
+    // Remove any existing new student row
+    const existingRow = document.getElementById('newStudentRow');
+    if (existingRow) existingRow.remove();
+
+    // Hide the no students message
+    document.getElementById('noStudentsMessage').style.display = 'none';
+    
+    // Show the table (in case it was hidden)
+    document.getElementById('studentsTable').style.display = 'block';
+
+    // Get the template and clone it
+    const template = document.getElementById('newStudentRowTemplate');
+    const newRow = template.content.cloneNode(true);
+
+    // Get or create the tbody
+    let tbody = document.getElementById('studentsTableBody');
+    if (!tbody) {
+      tbody = document.createElement('tbody');
+      tbody.id = 'studentsTableBody';
+      document.getElementById('studentsTable').appendChild(tbody);
+    }
+
+    // Set row number (1 if empty table)
+    const rowCount = tbody.querySelectorAll('tr:not(#newStudentRow)').length;
+    newRow.querySelector('#newRowNumber').textContent = rowCount + 1;
+
+    // Add the new row to the table
+    tbody.prepend(newRow);
+
+    // Focus on the name field
+    document.getElementById('newStudentName').focus();
+  }
+
+  function cancelNewStudent() {
+    const newRow = document.getElementById('newStudentRow');
+    if (newRow) {
+      newRow.remove();
+      
+      // Check if table is now empty
+      const tbody = document.getElementById('studentsTableBody');
+      if (!tbody || tbody.children.length === 0) {
+        document.getElementById('noStudentsMessage').style.display = 'block';
+        document.getElementById('studentsTable').style.display = 'none';
+      }
+    }
+  }
+
+  function saveNewStudent() {
+    const name = document.getElementById('newStudentName').value;
+    const rollNo = document.getElementById('newStudentRollNo').value;
+    const gradeId = "{{ request.GET.grade_id }}";
+    const sectionId = "{{ request.GET.section_id }}";
+
+    if (!name || !rollNo) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    // Get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Submit the form via AJAX
+    const formData = new FormData();
+    formData.append('full_name', name);
+    formData.append('roll_no', rollNo);
+    formData.append('grade_id', gradeId);
+    formData.append('section_id', sectionId);
+
+    fetch("{% url 'create_student' %}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Could not save student'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving: ' + error.message);
     });
   }
-  
-  return students;
-}
 
-function renderClassView() {
-  // Update class info card
-  document.getElementById('classInfoCard').classList.remove('hidden');
-  document.getElementById('currentGrade').textContent = currentClass.grade;
-  document.getElementById('currentSection').textContent = currentClass.section;
-  
-  // Update statistics
-  const maleCount = studentsData.filter(s => s.gender === 'male').length;
-  const femaleCount = studentsData.filter(s => s.gender === 'female').length;
-  document.getElementById('maleCount').textContent = maleCount;
-  document.getElementById('femaleCount').textContent = femaleCount;
-  document.getElementById('studentCount').textContent = studentsData.length;
-  
-  // Render table
-  const tableBody = document.getElementById('studentsTableBody');
-  tableBody.innerHTML = '';
-  
-  studentsData.forEach(student => {
-    const row = document.createElement('tr');
-    row.className = 'hover:bg-gray-50';
-    row.innerHTML = `
-      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-        ${student.rollNumber}
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        ${student.name}
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          student.gender === 'male' ? 
-            'bg-blue-100 text-blue-800' : 
-            'bg-pink-100 text-pink-800'
-        }">
-          ${student.gender.charAt(0).toUpperCase() + student.gender.slice(1)}
-        </span>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <button onclick="editStudent('${student.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-        <button onclick="deleteStudent('${student.id}')" class="text-red-600 hover:text-red-900">Delete</button>
-      </td>
-    `;
-    tableBody.appendChild(row);
-  });
-  
-  // Show table and hide empty state
-  document.getElementById('studentsTable').classList.remove('hidden');
-  document.getElementById('emptyState').classList.add('hidden');
-}
+  // Event listeners
+  gradeSelect.addEventListener('change', updateSections);
+  sectionSelect.addEventListener('change', autoSubmitForm);
 
-// Student CRUD operations
-function openAddStudentModal(editId = null) {
-  if (!currentClass.grade && !editId) {
-    showAlert('Please select a class first', 'error');
-    return;
+  // On page load: set sections if grade is already selected
+  if (gradeSelect.value) {
+    updateSections();
   }
-  
-  const modal = document.getElementById('studentModal');
-  const form = modal.querySelector('form') || document.createElement('form');
-  
-  if (editId) {
-    // Edit mode
-    const student = studentsData.find(s => s.id === editId);
-    document.getElementById('modalTitle').textContent = `Edit ${student.name}`;
-    document.getElementById('editStudentId').value = student.id;
-    document.getElementById('studentName').value = student.name;
-    document.getElementById('rollNumber').value = student.rollNumber;
-    document.getElementById('gender').value = student.gender;
-    document.getElementById('parentContact').value = student.parentContact || '';
-  } else {
-    // Add mode
-    document.getElementById('modalTitle').textContent = `Add Student to ${currentClass.grade}-${currentClass.section}`;
-    document.getElementById('editStudentId').value = '';
-    form.reset();
-  }
-  
-  modal.classList.remove('hidden');
-  document.body.classList.add('overflow-hidden');
-}
 
-function closeModal() {
-  document.getElementById('studentModal').classList.add('hidden');
-  document.body.classList.remove('overflow-hidden');
-}
-
-function saveStudent() {
-  // Validate form
-  const name = document.getElementById('studentName').value.trim();
-  const rollNumber = document.getElementById('rollNumber').value.trim();
-  const gender = document.getElementById('gender').value;
-  
-  if (!name || !rollNumber || !gender) {
-    showAlert('Please fill all required fields', 'error');
-    return;
-  }
-  
-  const studentId = document.getElementById('editStudentId').value;
-  const studentData = {
-    id: studentId || generateStudentId(),
-    name,
-    rollNumber,
-    gender,
-    parentContact: document.getElementById('parentContact').value.trim()
-  };
-  
-  // Simulate API call
-  setTimeout(() => {
-    if (studentId) {
-      // Update existing student
-      const index = studentsData.findIndex(s => s.id === studentId);
-      if (index !== -1) {
-        studentsData[index] = studentData;
-      }
-    } else {
-      // Add new student
-      studentsData.push(studentData);
+  function confirmDelete(studentId, gradeId, sectionId) {
+    if (confirm('Are you sure you want to delete this student?')) {
+        const urlTemplate = "{% url 'delete_student' 0 %}";
+        const finalUrl = urlTemplate.replace('0', studentId);
+        
+        const form = document.getElementById('deleteStudentForm');
+        form.action = finalUrl;
+        
+        // Set the filter values in hidden inputs
+        document.getElementById('deleteGradeId').value = gradeId;
+        document.getElementById('deleteSectionId').value = sectionId;
+        
+        form.submit();
     }
-    
-    renderClassView();
-    closeModal();
-    showAlert(`Student ${studentId ? 'updated' : 'added'} successfully`, 'success');
-  }, 500);
-}
-
-function saveAndAddAnother() {
-  saveStudent();
-  // Keep modal open but reset form
-  document.getElementById('studentName').value = '';
-  document.getElementById('rollNumber').value = '';
-  document.getElementById('parentContact').value = '';
-  document.getElementById('studentName').focus();
-}
-
-function deleteStudent(studentId) {
-  if (!confirm('Are you sure you want to delete this student?')) return;
-  
-  // Simulate API call
-  setTimeout(() => {
-    studentsData = studentsData.filter(s => s.id !== studentId);
-    renderClassView();
-    showAlert('Student deleted successfully', 'success');
-  }, 500);
-}
-
-function generateStudentId() {
-  return `${currentClass.grade.charAt(currentClass.grade.length-1)}${currentClass.section}${(studentsData.length + 1).toString().padStart(2, '0')}`;
-}
-
-// Utility functions
-function showAlert(message, type = 'info') {
-  const alert = document.createElement('div');
-  alert.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg text-white ${
-    type === 'error' ? 'bg-red-500' : 
-    type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-  }`;
-  alert.textContent = message;
-  document.body.appendChild(alert);
-  
-  setTimeout(() => {
-    alert.classList.add('opacity-0', 'transition-opacity', 'duration-300');
-    setTimeout(() => alert.remove(), 300);
-  }, 3000);
-}
-
-function exportClassData() {
-  if (!studentsData.length) {
-    showAlert('No students to export', 'error');
-    return;
   }
-  
-  // In a real app, this would generate a CSV/Excel file
-  console.log('Exporting:', studentsData);
-  showAlert('Export started - check console for data', 'success');
-}
-
-function printClassRoster() {
-  if (!studentsData.length) {
-    showAlert('No students to print', 'error');
-    return;
-  }
-  
-  // In a real app, this would open a print dialog with formatted content
-  console.log('Printing:', studentsData);
-  showAlert('Print view opened - check console for data', 'success');
-}
-
-// Initialize with Alpine.js for dropdown functionality
-document.addEventListener('DOMContentLoaded', function() {
-  // This would be replaced with actual Alpine.js components in a real implementation
-});
 </script>
-
 {% endblock %}

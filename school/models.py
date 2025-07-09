@@ -25,16 +25,13 @@ class Section(models.Model):
             return f"{self.name} ({self.grade})"
         return f"{self.name} (No Grade)"
 
-    # def __str__(self):
-    #     grade_name = self.grade.name if self.grade else "No Grade"
-    #     return f"{self.name} ({grade_name})"
     
 class Student(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True, blank=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
-
+    roll_number = models.PositiveIntegerField()
 
 
 class Attendance(models.Model):

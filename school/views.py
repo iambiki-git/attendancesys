@@ -37,6 +37,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(school=self.request.user.school)
 
+
 class AttendanceViewSet(viewsets.ModelViewSet):
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticatedSchoolUser]

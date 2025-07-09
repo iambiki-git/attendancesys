@@ -16,7 +16,7 @@ class SectionAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'school', 'grade', 'section')
+    list_display = ('id', 'name', 'school', 'grade', 'section', 'roll_number')
     list_filter = ('school',)
     
 

@@ -12,6 +12,11 @@ urlpatterns = [
     path('grades/delete/<int:pk>/', delete_grade, name='delete_grade'),
     path('sections/save/', create_edit_section, name='create_section'),
     path('sections/save/<int:pk>/', create_edit_section, name='update_section'),
-
     path('section/delete/<int:pk>/', delete_section, name='delete_section'),
+
+    path('create/students/', create_student, name='create_student'),
+   # path('students/update/<int:pk>/', update_student, name='update_student'),
+    path('students/delete/<int:pk>/', delete_student, name='delete_student'),
+    
+
 ]

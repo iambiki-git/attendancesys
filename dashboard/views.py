@@ -134,24 +134,264 @@ def school_dashboard(request):
 
     return render(request, 'dashboard/school_admin_dashboard.html', context)
 
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+# def students_view(request):
+#     school = request.user.school
+#     grades = Grade.objects.filter(school=school)
+#     sections = Section.objects.filter(school=school)
+#     students = Student.objects.filter(school=school).order_by('name')
+
+#     sections_by_grade = {}
+#     for grade in grades:
+#         sections_list = sections.filter(grade=grade).values_list('name', flat=True)
+#         sections_by_grade[grade.grade_number] = list(sections_list)
+
+#     context = {
+#         'students': students,
+#         'grades': grades,
+#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
+#     }
+#     return render(request, 'dashboard/student_page.html', context)
+
+
+# def students_view(request):
+#     school = request.user.school
+#     grades = Grade.objects.filter(school=school).order_by('grade_number')
+#     sections = Section.objects.filter(school=school).order_by('name')
+
+#     # Sections grouped by Grade
+#     sections_by_grade = {}
+#     for grade in grades:
+#         sections_list = sections.filter(grade=grade).values_list('id', 'name')
+#         sections_by_grade[grade.id] = list(sections_list)
+
+#     grade_id = request.GET.get('grade_id')
+#     section_id = request.GET.get('section_id')
+
+#     students = Student.objects.filter(school=school)
+#     if grade_id:
+#         students = students.filter(grade_id=grade_id)
+#     if section_id:
+#         students = students.filter(section_id=section_id)
+#     students = students.order_by('name')
+
+#     return render(request, 'dashboard/student_page.html', {
+#         'grades': grades,
+#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
+#         'students': students,
+#         'selected_grade': grade_id,
+#         'selected_section': section_id,
+#     })
+
+from django.http import JsonResponse
+from django.core.serializers.json import DjangoJSONEncoder
+import json
 
 def students_view(request):
     school = request.user.school
-    grades = Grade.objects.filter(school=school)
-    print(grades)
-    sections = Section.objects.filter(school=school)
-    print(sections)
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
+    sections = Section.objects.filter(school=school).order_by('name')
+
+    # Sections grouped by Grade
+    sections_by_grade = {}
+    for grade in grades:
+        sections_list = sections.filter(grade=grade).values_list('id', 'name')
+        sections_by_grade[grade.id] = list(sections_list)
+
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+
+    # Get the selected grade and section objects
+    selected_grade_obj = None
+    selected_section_obj = None
+    
+    if grade_id:
+        selected_grade_obj = Grade.objects.filter(id=grade_id).first()
+    if section_id:
+        selected_section_obj = Section.objects.filter(id=section_id).first()
+
+    students = Student.objects.filter(school=school)
+    if grade_id:
+        students = students.filter(grade_id=grade_id)
+    if section_id:
+        students = students.filter(section_id=section_id)
+    students = students.order_by('name')
 
     context = {
         'grades': grades,
-        'sections': sections,
+        'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
+        'students': students,
+        'selected_grade': grade_id,
+        'selected_section': section_id,
+        'selected_grade_obj': selected_grade_obj,  # Add this
+        'selected_section_obj': selected_section_obj,  # Add this
     }
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Handle AJAX requests differently if needed
+        return JsonResponse(context)
+    
     return render(request, 'dashboard/student_page.html', context)
+
+
+# def create_student(request):
+#     if request.method == "POST":
+#         full_name = request.POST.get('full_name')
+#         roll_no = int(request.POST.get('roll_no'))
+#         grade_id = request.POST.get('grade_id')
+#         section_id = request.POST.get('section_id')
+
+#         # Call DRF API
+#         api_url = f"{settings.API_BASE_URL}students/"
+#         access_token = get_valid_access_token(request)
+#         print(access_token)
+
+#         payload = {
+#             "name": full_name,
+#             'roll_number': roll_no,
+#             "grade": grade_id,
+#             "section": section_id,
+#         }
+
+#         headers = {
+#             'Authorization': f'Bearer {access_token}',
+#             'Content-Type': 'application/json'
+#         }
+
+#         response = requests.post(api_url, json=payload, headers=headers)
+#         if response.status_code == 201:
+#             messages.success(request, "Student created successfully.")
+#         else:
+#             messages.error(request, f"Error: {response.status_code} {response.text}")
+        
+
+#         # Redirect back to student list page
+#         return redirect(f"/students/?grade_id={grade_id}&section_id={section_id}")
+    
+from django.http import JsonResponse
+import json
+
+def create_student(request):
+    if request.method == "POST":
+        try:
+            full_name = request.POST.get('full_name')
+            roll_no = int(request.POST.get('roll_no'))
+            grade_id = request.POST.get('grade_id')
+            section_id = request.POST.get('section_id')
+
+            if not all([full_name, roll_no, grade_id, section_id]):
+                return JsonResponse({'success': False, 'error': 'All fields are required'})
+
+            # Call DRF API
+            api_url = f"{settings.API_BASE_URL}students/"
+            access_token = get_valid_access_token(request)
+
+            payload = {
+                "name": full_name,
+                'roll_number': roll_no,
+                "grade": grade_id,
+                "section": section_id,
+            }
+
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+
+            response = requests.post(api_url, json=payload, headers=headers)
+            
+            if response.status_code == 201:
+                return JsonResponse({'success': True})
+            else:
+                error_msg = response.json().get('detail', response.text)
+                return JsonResponse({'success': False, 'error': error_msg})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+        
+
+# def delete_student(request, pk):
+#     if request.method != 'POST':
+#         messages.error(request, 'Invalid request method.')
+#         return redirect('students')
+
+#     access_token = get_valid_access_token(request)
+#     if not access_token:
+#         messages.error(request, 'Session expired. Please log in again.')
+#         return redirect('login')
+
+#     api_url = f"{settings.API_BASE_URL}students/{pk}/"
+#     headers = {
+#         'Authorization': f'Bearer {access_token}',
+#         'Content-Type': 'application/json',
+#     }
+
+#     try:
+#         response = requests.delete(api_url, headers=headers)
+
+#         if response.status_code == 204:
+#             messages.success(request, 'Student deleted successfully.')
+#         else:
+#             try:
+#                 detail = response.json()
+#             except Exception:
+#                 detail = response.text
+#             messages.error(request, f"API Error: {detail}")
+
+#     except requests.exceptions.RequestException as e:
+#         messages.error(request, f"Failed to connect to API: {str(e)}")
+
+#     return redirect(f"/students/?grade_id={grade_id}&section_id={section_id}")
+
+
+def delete_student(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('students')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    # Get grade and section from POST data
+    grade_id = request.POST.get('grade_id')
+    section_id = request.POST.get('section_id')
+
+    # API call to delete student
+    api_url = f"{settings.API_BASE_URL}students/{pk}/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        response = requests.delete(api_url, headers=headers)
+
+        if response.status_code == 204:
+            messages.success(request, 'Student deleted successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    # Redirect back with original filters
+    redirect_url = '/students/'
+    if grade_id and section_id:
+        redirect_url += f'?grade_id={grade_id}&section_id={section_id}'
+    return redirect(redirect_url)        
+
 
 
 def grades_view(request):
     school = request.user.school
-    grades = Grade.objects.filter(school=school)
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
 
     # Create Paginator: 6 items per page
     paginator = Paginator(grades, 6)
@@ -166,6 +406,7 @@ def grades_view(request):
         'page_obj':page_obj,
     }
     return render(request, 'dashboard/grades.html', context)
+
 
 
 from attendancesys.utils import get_valid_access_token
@@ -251,12 +492,16 @@ def create_edit_grade(request, pk=None):
     return redirect('grades')
 
 
-
+import re
 def create_edit_section(request, pk=None):
     grade_id = request.POST.get('grade_id')
-    name = request.POST.get('name')
+    name = request.POST.get('name', '').strip()
     school = request.user.school
 
+    if not re.search(r'[A-Za-z]', name):
+        messages.error(request, 'Section must contain at least one letter.')
+        return redirect('grades')
+    
     if not grade_id or not name:
         messages.error(request, "All fields are required.")
         return redirect('grades')  # replace with your page name
@@ -378,3 +623,5 @@ def delete_section(request, pk):
         messages.error(request, f"Failed to connect to API: {str(e)}")
 
     return redirect('grades')
+
+
