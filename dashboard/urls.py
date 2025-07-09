@@ -17,6 +17,8 @@ urlpatterns = [
     path('create/students/', create_student, name='create_student'),
    # path('students/update/<int:pk>/', update_student, name='update_student'),
     path('students/delete/<int:pk>/', delete_student, name='delete_student'),
+
+    path('teachers/', teachers_view, name='teachers'),
     
 
 ]

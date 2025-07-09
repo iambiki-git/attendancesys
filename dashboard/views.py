@@ -625,3 +625,5 @@ def delete_section(request, pk):
     return redirect('grades')
 
 
+def teachers_view(request):
+    return render(request, 'dashboard/teachers_page.html')
