@@ -1,10 +1,19 @@
 from django.shortcuts import render, redirect
-from school.models import School
+from school.models import School, Student, TeacherProfile
 from django.contrib import messages
 
 # Create your views here.
 def superadmin_dashboard(request):
-    return render(request, 'superadmin/admin_dashboard.html')
+    total_schools = School.objects.all().count()
+    total_students = Student.objects.all().count() 
+    total_teachers = TeacherProfile.objects.all().count() 
+
+    context = {
+        'total_schools': total_schools,
+        'total_students': total_students,
+        'total_teachers': total_teachers,
+    }
+    return render(request, 'superadmin/admin_dashboard.html', context)
 
 
 from django.db.models import Prefetch

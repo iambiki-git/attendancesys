@@ -34,7 +34,7 @@ class TeacherProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'date', 'status')
+    list_display = ('id', 'student', 'date', 'status', 'notes')
     list_filter = ('student__school', 'date', 'status')
 
 

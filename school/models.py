@@ -33,6 +33,9 @@ class Student(models.Model):
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
     roll_number = models.PositiveIntegerField()
 
+    def __str__(self):
+        return self.name
+
 
 from django.conf import settings
 class TeacherProfile(models.Model):
@@ -59,12 +62,14 @@ class TeacherProfile(models.Model):
         return f"TeacherProfile: {self.user.username}"
 
     
-    
 
 class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date = models.DateField()
     status = models.CharField(max_length=10)  # 'Present' or 'Absent'
+    notes = models.TextField(blank=True, null=True)
 
     class Meta:
         unique_together = ('student', 'date')
+
+  

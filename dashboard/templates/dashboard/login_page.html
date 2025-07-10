@@ -1,7 +1,7 @@
 {% extends "dashboard/base.html" %}
 {% block navbar %}{% endblock %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+{% comment %} <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
   <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
     <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
     
@@ -30,5 +30,83 @@
       </button>
     </form>
   </div>
+</div> {% endcomment %}
+
+<div class="flex min-h-full flex-col justify-center px-6 py-12 mt-12 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+    {% comment %} <img class="mx-auto h-10 w-auto" src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600" alt="Your Company" /> {% endcomment %}
+    <p class="mt-4 text-center text-md font-bold tracking-tight">
+      <span class="bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+        attendance
+      </span>
+      <span class="text-gray-900">
+        SYS
+      </span>
+    </p>
+    <h2 class="text-center text-2xl/9 font-bold tracking-tight text-gray-900">Sign in to your account</h2>
+  </div>
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+    <form class="space-y-6" method="POST">
+      {% csrf_token %}
+      <div>
+        <label for="username" class="block text-sm/6 font-medium text-gray-900">Username</label>
+        <div class="mt-2">
+          <input type="text" name="username" id="username" autocomplete="email" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 border border-gray-400 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between">
+          <label for="password" class="block text-sm/6 font-medium text-gray-900">Password</label>
+          <div class="text-sm">
+            <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+          </div>
+        </div>
+        <div class="mt-2">
+          <input type="password" name="password" id="password" autocomplete="current-password" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 border border-gray-400 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+        </div>
+      </div>
+
+      <div>
+        <button type="submit" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Sign in</button>
+      </div>
+    </form>
+
+    {% comment %} <p class="mt-10 text-center text-sm/6 text-gray-500">
+      Not a member?
+      <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-500">Start a 14 day free trial</a>
+    </p> {% endcomment %}
+  </div>
 </div>
+
+<div id="toast-container" class="fixed bottom-5 right-5 space-y-3 z-50 flex flex-col items-end">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="toast px-4 py-3 rounded shadow text-white 
+        {% if message.tags == 'success' %} bg-green-500 
+        {% elif message.tags == 'error' %} bg-red-500 
+        {% elif message.tags == 'warning' %} bg-yellow-500 text-black
+        {% else %} bg-blue-500 {% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<script>
+  {% comment %} TOAST SCRIPT {% endcomment %}
+    document.addEventListener("DOMContentLoaded", function() {
+    const toasts = document.querySelectorAll('.toast');
+    toasts.forEach(toast => {
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-10');
+      }, 3000); // 3 sec visible
+
+      setTimeout(() => {
+        toast.remove();
+      }, 4000); // Remove after fade
+    });
+  });
+</script>
 {% endblock %}

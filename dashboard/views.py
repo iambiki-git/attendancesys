@@ -14,8 +14,8 @@ from django.core.paginator import Paginator
 def login_view(request):
     # ✅ If already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        if request.user.is_superuser:
-            return redirect('admin_dashboard')
+        if request.user.is_staff:
+            return redirect('superadmin_dashboard')
         elif request.user.is_school_admin:
             return redirect('school_admin_dashboard')
         elif request.user.is_teacher:
@@ -54,7 +54,7 @@ def login_view(request):
                     
                     # 3. Check user role and redirect accordingly
                     if hasattr(user, 'is_superuser') and user.is_superuser:
-                        return redirect('admin_dashboard')
+                        return redirect('superadmin_dashboard')
                     elif hasattr(user, 'is_school_admin') and user.is_school_admin:
                         return redirect('school_admin_dashboard')
                     elif hasattr(user, 'is_teacher') and user.is_teacher:
@@ -649,6 +649,7 @@ def teachers_view(request):
     sections = Section.objects.filter(school=school).order_by('name')
 
     teachers = TeacherProfile.objects.filter(school=school)
+    #print(teachers)
 
     # Prepare sections data grouped by grade
     sections_by_grade = {}
@@ -717,10 +718,10 @@ def create_teacher(request):
             profile = TeacherProfile.objects.create(
                 user=teacher_user,
                 school=school,
+                grade=grade,
+                section=section,
                 subjects=subjects
             )
-            profile.grades.add(grade)
-            profile.sections.add(section)
 
             messages.success(request, f"Teacher '{username}' created successfully!")
             return redirect('teachers')
@@ -740,5 +741,195 @@ def create_teacher(request):
     })
 
 
+from django.utils import timezone
 def teacher_dashboard(request):
-    return render(request, 'dashboard/teachers/teacher_dashboard.html')
+    teacher = request.user.teacherprofile
+    grade = teacher.grade
+    section = teacher.section
+    today = timezone.now().date()
+
+    # कुल विद्यार्थी
+    students = Student.objects.filter(
+        grade=grade,
+        section=section,
+        school=teacher.school
+    )
+    students_count = students.count()
+
+    # ✅ Present = Present + Late
+    present_count = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date=today,
+        status__in=['Present', 'Late']
+    ).count()
+
+    # ✅ Absent
+    absent_count = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date=today,
+        status='Absent'
+    ).count()
+
+    # ✅ Late छुट्टै देखाउन चाहनुभयो भने
+    late_count = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date=today,
+        status='Late'
+    ).count()
+
+    # Attendance percentage (Late लाई पनि Present मा मान्दै)
+    attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
+
+    context = {
+        'students_count': students_count,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'late_count': late_count,
+        'attendance_percentage': attendance_percentage,
+        'teacher': teacher,
+        'grade': grade,
+        'section': section,
+        'current_date': today
+    }
+    return render(request, 'dashboard/teachers/teacher_dashboard.html', context)
+
+
+
+from datetime import date
+def attendance(request):
+    teacher = request.user.teacherprofile
+    grade = teacher.grade
+    section = teacher.section
+    today = timezone.now().date()
+
+    students = Student.objects.filter(
+        grade = grade,
+        section = section,
+        school = teacher.school
+    ).order_by('roll_number')
+
+    # Check if any attendance exists for today
+    attendance_submitted = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date=today
+    ).exists()
+
+    context = {
+        'students': students,
+        'current_date': date.today(),
+        'attendance_submitted': attendance_submitted,
+
+    }
+    return render(request, 'dashboard/teachers/attendance_page.html', context)
+
+
+from django.views.decorators.http import require_POST
+from datetime import datetime
+@require_POST
+def submit_attendance(request):
+    access_token = get_valid_access_token(request)
+    API_URL = f"{settings.API_BASE_URL}attendance/"
+    HEADERS = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        attendance_date = request.POST.get("attendance_date", "").strip()
+        if not attendance_date:
+            attendance_date = datetime.now().strftime('%Y-%m-%d')
+
+        for key, value in request.POST.items():
+            if key.startswith('student_'):
+                student_id = key.split('_')[1]
+                
+                payload = {
+                    "student": str(student_id),
+                    "date": attendance_date,
+                    "status": value,
+                    "notes": request.POST.get(f"note_{student_id}", "").strip() 
+                           if value in ["Absent", "Late"] else ""
+                }
+
+                # Use PATCH for existing records, POST for new ones
+                method = 'PATCH' if is_existing_record(student_id, attendance_date) else 'POST'
+                endpoint = f"{API_URL}{student_id}/{attendance_date}/" if method == 'PATCH' else API_URL
+
+                response = requests.request(
+                    method,
+                    endpoint,
+                    headers=HEADERS,
+                    json=payload,
+                    timeout=5
+                )
+
+                if response.status_code not in [200, 201]:
+                    error_data = response.json()
+                    messages.error(request, f"Error for student {student_id}: {error_data}")
+                    return redirect('attendance')
+
+        messages.success(request, "Attendance saved successfully!")
+        return redirect('attendance')
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Connection failed: {str(e)}")
+        return redirect('attendance')
+
+def is_existing_record(student_id, date):
+    """Check if record exists (you might need to call your API for this)"""
+    # This is a placeholder - implement based on your API
+    # Example implementation might call GET /attendance/{student_id}/{date}/
+    return False  # Default to False if you can't check
+
+
+def student_status(request):
+    teacher_profile = request.user.teacherprofile
+    
+    # Get students in teacher's grade/section
+    students = Student.objects.filter(
+        grade=teacher_profile.grade,
+        section=teacher_profile.section,
+        school=teacher_profile.school
+    ).order_by('roll_number')  # Ordered by roll number
+    
+    # Get today's date
+    today = timezone.now().date()
+    
+    # Get attendance data for today
+    attendance_today = Attendance.objects.filter(
+        student__in=students,
+        date=today
+    ).select_related('student')
+    
+    # Create a dictionary of attendance statuses
+    attendance_status = {att.student_id: att.status for att in attendance_today}
+    
+    # Count attendance types
+    present_count = sum(1 for status in attendance_status.values() if status == 'Present')
+    late_count = sum(1 for status in attendance_status.values() if status == 'Late')
+    absent_count = sum(1 for status in attendance_status.values() if status == 'Absent')
+    
+    context = {
+        'teacher_profile': teacher_profile,
+        'students': students,
+        'attendance_status': attendance_status,
+        'present_count': present_count,
+        'late_count': late_count,
+        'absent_count': absent_count,
+        'current_date': today
+    }
+
+    return render(request, 'dashboard/teachers/student_status.html', context)
+
+
+def delete_teacher(request, id):
+    
+    pass
