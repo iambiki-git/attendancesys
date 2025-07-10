@@ -4,7 +4,7 @@ from .models import CustomUser, School
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+    list_display = ('id', 'name', 'created_at')
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):

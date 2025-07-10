@@ -1,0 +1,143 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<div class="bg-white rounded-xl shadow-md p-6 max-w-4xl mx-auto">
+    {% if messages %}
+    {% for message in messages %}
+        <div class="mb-4 p-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+            {{ message }}
+        </div>
+    {% endfor %}
+    {% endif %}
+    
+    <!-- Header -->
+    <div class="flex justify-between items-baseline mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Mark Attendance</h2>
+        <div class="flex items-center gap-3 mt-1 text-sm text-gray-600">
+            <span>Teacher: <span class="font-medium text-gray-700">{{ request.user.first_name }} {{ request.user.last_name }}</span></span>
+            <span>•</span>
+            <span>Grade: <span class="font-medium text-gray-700">{{ request.user.teacherprofile.grade.grade_number }}</span></span>
+            <span>•</span>
+            <span>Section: <span class="font-medium text-gray-700">{{ request.user.teacherprofile.section.name }}</span></span>
+        </div>
+    </div>
+    <div class="text-right">
+        <span class="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+            {{ current_date|date:"M j, Y" }}
+        </span>
+    </div>
+</div>
+
+    <!-- Attendance Form -->
+    <form method="POST" action="{% url 'submit_attendance' %}">
+        {% csrf_token %}
+        <input type="hidden" name="attendance_date" value="{{ current_date|date:'Y-m-d' }}">
+        
+        <!-- Instructions -->
+        <div class="p-3 bg-blue-50 rounded-lg mb-4">
+            <p class="text-sm text-blue-700">
+                <strong>Note:</strong> Students are marked as Present by default. 
+                Only mark students who are Absent or Late. Late students are counted as present.
+            </p>
+        </div>
+
+        <!-- Student List -->
+        <div class="space-y-3">
+            {% for student in students %}
+            <div class="flex flex-col sm:flex-row items-start sm:items-center p-3 border border-gray-200 rounded-lg gap-3 hover:bg-gray-50 transition-colors attendance-item">
+                <div class="w-10 text-sm font-medium text-gray-900">{{ forloop.counter }}</div>
+                <div class="flex-grow text-sm text-gray-900">{{ student.name }}</div>
+                
+                <div class="flex flex-wrap gap-4 items-center">
+                    <!-- Present (default) - hidden but implied -->
+                    <input type="hidden" 
+                           name="student_{{ student.id }}" 
+                           value="Present" 
+                           class="present-radio"
+                           checked>
+                    
+                    <!-- Absent Option -->
+                    <label class="inline-flex items-center">
+                        <input type="radio" 
+                               name="student_{{ student.id }}" 
+                               value="Absent" 
+                               class="h-4 w-4 text-red-600 focus:ring-red-500 attendance-radio">
+                        <span class="ml-2 text-sm">Absent</span>
+                    </label>
+                    
+                    <!-- Late Option -->
+                    <label class="inline-flex items-center">
+                        <input type="radio" 
+                               name="student_{{ student.id }}" 
+                               value="Late" 
+                               class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 attendance-radio">
+                        <span class="ml-2 text-sm">Late</span>
+                    </label>
+                </div>
+                
+                <div class="w-full sm:w-40">
+                    <input type="text" 
+                           name="note_{{ student.id }}" 
+                           placeholder="Reason (if absent/late)" 
+                           class="attendance-note w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                           disabled>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="mt-6 pt-6 border-t border-gray-200 flex justify-between">
+            <button type="button" id="reset-all" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm">
+                Reset All
+            </button>
+            {% if attendance_submitted %}
+                <button type="button" disabled class="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed">
+                    Attendance Submitted ✅
+                </button>
+            {% else %}
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    Submit Attendance
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable note field when marked absent/late
+    document.querySelectorAll('.attendance-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const noteField = this.closest('.attendance-item').querySelector('.attendance-note');
+            const presentRadio = this.closest('.attendance-item').querySelector('.present-radio');
+            
+            noteField.disabled = !(this.value === 'Absent' || this.value === 'Late');
+            if (noteField.disabled) noteField.value = '';
+            
+            // Uncheck the hidden present radio when another option is selected
+            presentRadio.checked = false;
+        });
+    });
+    
+
+    // Reset all button
+    document.getElementById('reset-all').addEventListener('click', function() {
+        document.querySelectorAll('.attendance-item').forEach(item => {
+            const presentRadio = item.querySelector('.present-radio');
+            const noteField = item.querySelector('.attendance-note');
+            
+            // Uncheck all radio buttons
+            item.querySelectorAll('.attendance-radio').forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // Reset to default present state
+            presentRadio.checked = true;
+            noteField.value = '';
+            noteField.disabled = true;
+        });
+    });
+});
+</script>
+{% endblock %}
