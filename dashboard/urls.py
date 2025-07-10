@@ -21,6 +21,7 @@ urlpatterns = [
 
     path('teachers/', teachers_view, name='teachers'),
     path('teacher/create/', create_teacher, name='create_teacher'),
+    path('teachers/update/<int:teacher_id>/', update_teacher, name='update_teacher'),
     path('teacher/delete/<int:id>/', delete_teacher, name='delete_teacher'),
 
     #Teacher dashboard

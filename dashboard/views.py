@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
 from school.models import Student, Attendance, Grade, Section, TeacherProfile
@@ -741,6 +741,58 @@ def create_teacher(request):
     })
 
 
+from django.http import JsonResponse
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+
+User = get_user_model()
+
+def update_teacher(request, teacher_id):
+    if request.method == 'POST':
+        teacher = get_object_or_404(TeacherProfile, user__id=teacher_id, school=request.user.school)
+        
+        try:
+            # Update user fields
+            user = teacher.user
+            user.first_name = request.POST.get('first_name', user.first_name)
+            user.last_name = request.POST.get('last_name', user.last_name)
+            user.save()
+            
+            # Update teacher profile
+            teacher.subjects = request.POST.get('subject', teacher.subjects)
+            
+            # Update grade and section with school scope
+            grade_id = request.POST.get('grade_level')
+            if grade_id:
+                teacher.grade = get_object_or_404(Grade, id=grade_id, school=request.user.school)
+            else:
+                teacher.grade = None
+                
+            section_id = request.POST.get('section')
+            if section_id:
+                teacher.section = get_object_or_404(Section, id=section_id, school=request.user.school)
+            else:
+                teacher.section = None
+                
+            teacher.save()
+            
+            return JsonResponse({
+                'success': True,
+                'teacher': {
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'subject': teacher.subjects,
+                    'grade': teacher.grade.grade_number if teacher.grade else None,
+                    'section': teacher.section.name if teacher.section else None,
+                }
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
 from django.utils import timezone
 def teacher_dashboard(request):
     teacher = request.user.teacherprofile
@@ -748,7 +800,7 @@ def teacher_dashboard(request):
     section = teacher.section
     today = timezone.now().date()
 
-    # कुल विद्यार्थी
+    # total students
     students = Student.objects.filter(
         grade=grade,
         section=section,
@@ -756,7 +808,7 @@ def teacher_dashboard(request):
     )
     students_count = students.count()
 
-    # ✅ Present = Present + Late
+    # Present = Present + Late
     present_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
@@ -774,7 +826,7 @@ def teacher_dashboard(request):
         status='Absent'
     ).count()
 
-    # ✅ Late छुट्टै देखाउन चाहनुभयो भने
+    # ✅ Late 
     late_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
@@ -783,7 +835,7 @@ def teacher_dashboard(request):
         status='Late'
     ).count()
 
-    # Attendance percentage (Late लाई पनि Present मा मान्दै)
+    # Attendance percentage late lai ni present manne
     attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
 
     context = {
@@ -930,6 +982,12 @@ def student_status(request):
     return render(request, 'dashboard/teachers/student_status.html', context)
 
 
+from django.urls import reverse
+from django.contrib.auth import get_user_model
+User = get_user_model()
 def delete_teacher(request, id):
+    teacher = User.objects.get(id=id, is_teacher=True)
+    teacher.delete()
+    messages.success(request, 'Teacher deleted successfully.')
+    return redirect('teachers')
     
-    pass

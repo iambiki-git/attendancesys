@@ -3,12 +3,43 @@
     <div class="flex justify-between h-16">
       <!-- Left side - Logo/School Name -->
       <div class="flex items-center">
+        {% if request.user.is_school_admin %}
         <div class="flex-shrink-0 flex items-center">
           <svg class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
           <span class="ml-2 text-xl font-bold text-gray-800">{{ request.user.school.name }}</span>
         </div>
+        {% elif request.user.is_teacher %}
+        <div class="flex items-center gap-4">
+          <!-- Avatar with subtle shadow -->
+          <div class="relative">
+            <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shadow-sm border border-indigo-100">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- User info with clean typography -->
+          <div>
+            <h1 class="text-lg font-medium text-gray-800 leading-tight">
+              {{ request.user.first_name }} {{ request.user.last_name }}
+              <span class="text-sm font-normal text-indigo-600 ml-1.5">• Teacher</span>
+            </h1>
+            
+            <div class="flex items-center mt-1 text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span class="text-sm text-gray-600">{{ request.user.school.name }}</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
       <!-- Center - Navigation Links -->
@@ -76,7 +107,7 @@
       <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
         <span class="sr-only">Open user menu</span>
         <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-          {{ request.user.username|first|upper }}
+          {{ request.user.school.name|first }}
         </div>
       </button>
     </div>
