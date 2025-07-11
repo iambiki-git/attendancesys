@@ -5,7 +5,7 @@ from school.models import Student, Attendance, Grade, Section, TeacherProfile
 from users.models import School
 from django.contrib import messages
 import requests
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, update_session_auth_hash
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
@@ -116,10 +116,12 @@ def school_dashboard(request):
     
     school = request.user.school
     students = Student.objects.filter(school=school)
+    teachers = TeacherProfile.objects.filter(school=school)
     grades = Grade.objects.filter(school=school)
     today = datetime.today()
 
     total_students = students.count()
+    total_teachers = teachers.count()
     total_grades = grades.count
     today_attendance = Attendance.objects.filter(student__school=school, date=today)
 
@@ -129,6 +131,7 @@ def school_dashboard(request):
     context = {
         'school': school,
         'total_students': total_students,
+        'total_teachers': total_teachers,
         # 'present_count': present_count,
         # 'absent_count': absent_count,
         'total_grades': total_grades,
@@ -136,59 +139,42 @@ def school_dashboard(request):
 
     }
 
-    return render(request, 'dashboard/school_admin_dashboard.html', context)
+    return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
 
-import json
-from django.core.serializers.json import DjangoJSONEncoder
-# def students_view(request):
-#     school = request.user.school
-#     grades = Grade.objects.filter(school=school)
-#     sections = Section.objects.filter(school=school)
-#     students = Student.objects.filter(school=school).order_by('name')
+def settings_view(request):
+    return render(request, 'dashboard/school_dashboard/settings.html')
 
-#     sections_by_grade = {}
-#     for grade in grades:
-#         sections_list = sections.filter(grade=grade).values_list('name', flat=True)
-#         sections_by_grade[grade.grade_number] = list(sections_list)
+def update_password(request):
+    if request.method == "POST":
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
 
-#     context = {
-#         'students': students,
-#         'grades': grades,
-#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
-#     }
-#     return render(request, 'dashboard/student_page.html', context)
+        user = request.user
 
+        # Check if current password is correct
+        if not user.check_password(current_password):
+            messages.error(request, "Your current password is incorrect.")
+            return redirect('settings') 
+        
+        # Check if new password and confirm match
+        if new_password != confirm_password:
+            messages.error(request, "New password and confirm password do not match.")
+            return redirect('settings')
+        
+        # Set new password
+        user.set_password(new_password)
+        user.save()
 
-# def students_view(request):
-#     school = request.user.school
-#     grades = Grade.objects.filter(school=school).order_by('grade_number')
-#     sections = Section.objects.filter(school=school).order_by('name')
+        # Keep user logged in after password change
+        update_session_auth_hash(request, user)
 
-#     # Sections grouped by Grade
-#     sections_by_grade = {}
-#     for grade in grades:
-#         sections_list = sections.filter(grade=grade).values_list('id', 'name')
-#         sections_by_grade[grade.id] = list(sections_list)
+        messages.success(request, "Your password has been updated successfully.")
+        return redirect('settings')
+    else:
+        return redirect('settings')
+    
 
-#     grade_id = request.GET.get('grade_id')
-#     section_id = request.GET.get('section_id')
-
-#     students = Student.objects.filter(school=school)
-#     if grade_id:
-#         students = students.filter(grade_id=grade_id)
-#     if section_id:
-#         students = students.filter(section_id=section_id)
-#     students = students.order_by('name')
-
-#     return render(request, 'dashboard/student_page.html', {
-#         'grades': grades,
-#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
-#         'students': students,
-#         'selected_grade': grade_id,
-#         'selected_section': section_id,
-#     })
-
-from django.http import JsonResponse
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 
@@ -239,7 +225,7 @@ def students_view(request):
         # Handle AJAX requests differently if needed
         return JsonResponse(context)
     
-    return render(request, 'dashboard/student_page.html', context)
+    return render(request, 'dashboard/school_dashboard/student_page.html', context)
 
 
 # def create_student(request):
@@ -420,7 +406,7 @@ def grades_view(request):
     context = {
         'page_obj':page_obj,
     }
-    return render(request, 'dashboard/grades.html', context)
+    return render(request, 'dashboard/school_dashboard/grades.html', context)
 
 
 
@@ -665,7 +651,7 @@ def teachers_view(request):
         'sections_by_grade': json.dumps(sections_by_grade),
         'teachers': teachers
     }
-    return render(request, 'dashboard/teachers_page.html', context)
+    return render(request, 'dashboard/school_dashboard/teachers_page.html', context)
 
 
 from django.contrib.auth import get_user_model
@@ -794,11 +780,16 @@ def update_teacher(request, teacher_id):
 
 
 from django.utils import timezone
+import nepali_datetime
 def teacher_dashboard(request):
     teacher = request.user.teacherprofile
     grade = teacher.grade
     section = teacher.section
-    today = timezone.now().date()
+    today_ad = timezone.now().date()
+    today_bs = nepali_datetime.date.from_datetime_date(today_ad)
+
+    nepali_weekday = today_bs.strftime("%A")
+    nepali_date_str = today_bs.strftime("%B %d, %Y")
 
     # total students
     students = Student.objects.filter(
@@ -813,25 +804,25 @@ def teacher_dashboard(request):
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status__in=['Present', 'Late']
     ).count()
 
-    # ✅ Absent
+    # Absent
     absent_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status='Absent'
     ).count()
 
-    # ✅ Late 
+    # Late 
     late_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status='Late'
     ).count()
 
@@ -847,7 +838,10 @@ def teacher_dashboard(request):
         'teacher': teacher,
         'grade': grade,
         'section': section,
-        'current_date': today
+        'current_date_ad': today_ad,
+        'current_date_bs': today_bs,
+        'nepali_weekday': nepali_weekday,
+        'nepali_date_str': nepali_date_str,
     }
     return render(request, 'dashboard/teachers/teacher_dashboard.html', context)
 
