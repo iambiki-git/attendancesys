@@ -17,6 +17,7 @@
         </div>
 
         <!-- Grades List -->
+        
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             {% for grade in page_obj %}
             <div class="border-b border-gray-200 last:border-b-0 p-4">
@@ -53,7 +54,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
                         {% for section in grade.sections.all %}
                         <div class="bg-gray-50 rounded-md p-2 flex justify-between items-center">
-                            <span class="font-medium text-sm">{{ section.name }}</span>
+                            {% comment %} <span class="font-medium text-sm">{{ section.name }}</span> {% endcomment %}
+                            <a href="{% url 'setup_routine' %}?grade_id={{ grade.id }}&section_id={{ section.id }}"
+                            class="bg-blue-100 text-blue-800 font-medium text-sm rounded-lg px-2 py-1 mr-4 hover:bg-blue-200 transition inline-block">
+                                {{ section.name }}
+                            </a>
                             <span class="font-sm text-xs">Total Student: 30</span>
                             <div class="flex space-x-1">
                                 <button onclick="editSection({{ section.id }}, '{{ section.name }}', {{ section.grade.id }})" class="text-blue-500 hover:text-blue-700">
@@ -81,6 +86,7 @@
             </div>
             {% endfor %}
         </div>
+        
     </div>
 
     <!-- Grade Modal -->

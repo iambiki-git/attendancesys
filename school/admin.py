@@ -40,5 +40,5 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(Subjects)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'school')
+    list_display = ('id', 'name', 'grade', 'school')
 

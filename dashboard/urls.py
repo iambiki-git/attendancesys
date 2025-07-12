@@ -17,6 +17,9 @@ urlpatterns = [
     path('grades/save/', create_edit_grade, name='create_grade'),
     path('grades/edit/<int:pk>/', create_edit_grade, name='update_grade'),
     path('grades/delete/<int:pk>/', delete_grade, name='delete_grade'),
+
+    path('routine/setup/', setup_routine, name='setup_routine'),
+
     path('sections/save/', create_edit_section, name='create_section'),
     path('sections/save/<int:pk>/', create_edit_section, name='update_section'),
     path('section/delete/<int:pk>/', delete_section, name='delete_section'),
@@ -33,6 +36,7 @@ urlpatterns = [
     path('teacher/create/', create_teacher, name='create_teacher'),
     path('teachers/update/<int:teacher_id>/', update_teacher, name='update_teacher'),
     path('teacher/delete/<int:id>/', delete_teacher, name='delete_teacher'),
+
 
     #Teacher dashboard
     path('teacher/dashboard/', teacher_dashboard, name='teacher_dashboard'),

@@ -662,6 +662,7 @@ def teachers_view(request):
         'sections_by_grade': json.dumps(sections_by_grade),
         'teachers': page_obj,
         'subjects': subjects,
+        'all_teachers': all_teachers,
     }
     return render(request, 'dashboard/school_dashboard/teachers_page.html', context)
 
@@ -1029,11 +1030,31 @@ def delete_teacher(request, id):
     
 
 def subjects(request):
-    subjects = Subjects.objects.filter(school=request.user.school)
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+    school = request.user.school
+
+    grades = Grade.objects.filter(school=school)
+    sections = Section.objects.filter(grade_id=grade_id) if grade_id else Section.objects.none()
+
+    subjects = Subjects.objects.filter(grade_id=grade_id) if grade_id else []
+
     context = {
+        'grades': grades,
+        'sections': sections,
         'subjects': subjects,
+        'selected_grade': Grade.objects.filter(id=grade_id).first() if grade_id else None,
+        'selected_section': Section.objects.filter(id=section_id).first() if section_id else None,
     }
     return render(request, 'dashboard/school_dashboard/subjects.html', context)
+
+# def subjects(request):
+#     subjects = Subjects.objects.filter(school=request.user.school)
+
+#     context = {
+#         'subjects': subjects,
+#     }
+#     return render(request, 'dashboard/school_dashboard/subjects.html', context)
 
 
 def add_subject(request):
@@ -1042,6 +1063,7 @@ def add_subject(request):
         return redirect('subjects')  # adjust this to your subjects list URL name
 
     subject_name = request.POST.get('name')
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
     school = request.user.school
     if not subject_name:
         messages.error(request, 'Subject name cannot be empty.')
@@ -1063,6 +1085,7 @@ def add_subject(request):
     }
     payload = {
         'name': subject_name,
+        'grade': grade_id,
         'school': school.id
     }
 
@@ -1081,13 +1104,16 @@ def add_subject(request):
     except requests.exceptions.RequestException as e:
         messages.error(request, f"Failed to connect to API: {str(e)}")
 
-    return redirect('subjects')
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
+
 
 
 def delete_subject(request, pk):
     if request.method != 'POST':
         messages.error(request, 'Invalid request method.')
         return redirect('subjects')  # adjust to your subjects list URL name
+
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
 
     # Example: get access token (replace with your logic)
     access_token = get_valid_access_token(request)
@@ -1118,7 +1144,7 @@ def delete_subject(request, pk):
     except requests.exceptions.RequestException as e:
         messages.error(request, f"Failed to connect to API: {str(e)}")
 
-    return redirect('subjects')
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
 
 
 def edit_subject(request, pk):
@@ -1127,6 +1153,8 @@ def edit_subject(request, pk):
         return redirect('subjects')
 
     new_name = request.POST.get('name')
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
+
     if not new_name:
         messages.error(request, 'Subject name cannot be empty.')
         return redirect('subjects')
@@ -1158,7 +1186,7 @@ def edit_subject(request, pk):
     except requests.exceptions.RequestException as e:
         messages.error(request, f"Failed to connect to API: {str(e)}")
 
-    return redirect('subjects')
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
 
 
 def overall_attendance(request):
@@ -1204,3 +1232,21 @@ def upload_students_csv(request):
 
     messages.error(request, "No CSV file uploaded.")
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+def setup_routine(request):
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+
+    grade = get_object_or_404(Grade, id=grade_id)
+    section = get_object_or_404(Section, id=section_id, grade=grade)
+
+    context = {
+        'grade': grade,
+        'section': section,
+        'subjects': Subjects.objects.filter(grade=grade),
+        'teachers': TeacherProfile.objects.filter(school=request.user.school),
+        'days': ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        'periods': range(1, 9),
+    }
+    return render(request, 'dashboard/school_dashboard/routine_setup.html', context)

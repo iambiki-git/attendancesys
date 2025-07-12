@@ -3,15 +3,27 @@
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     <h1 class="text-2xl font-bold text-gray-800 mb-6">Teacher Management</h1>
     
-    <!-- Toggle Button for Form -->
-    <button id="toggleFormBtn" class="mb-4 flex items-center text-sm bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
-        <svg id="toggleIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-        Create New Teacher
-    </button>
 
-    <!-- Collapsible Form -->
+    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+        <!-- Create Teacher Button -->
+        <button id="toggleFormBtn" class="flex items-center text-sm bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+            <svg id="toggleIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Create New Teacher
+        </button>
+
+        <!-- Assign Teacher Button -->
+        {% comment %} <button id="assignTeacherBtn" class="flex items-center text-sm bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6m9 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Assign Teacher to Class
+        </button> {% endcomment %}
+    </div>
+
+
+    <!-- Collapsible Form for creating new teacher -->
     <div id="teacherForm" class="hidden bg-white rounded-lg shadow-md overflow-hidden mb-8 border border-gray-200">
         <div class="p-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-4">Teacher Information</h2>
@@ -54,7 +66,7 @@
                 </div>
 
                 <!-- Academic Info -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% comment %} <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label for="subject" class="block text-xs font-medium text-gray-600 mb-1">Subject*</label>
                         <select id="subject" name="subject" required
@@ -66,30 +78,30 @@
                         </select>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-        <label for="gradeLevel" class="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
-        <select id="gradeLevel" name="grade_level" 
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <option value="">Select grade</option>
-            {% for grade in grades %}
-            <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div>
-        <label for="section" class="block text-xs font-medium text-gray-600 mb-1">Section</label>
-        <select id="sectionSelect" name="section"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <option value="">Select section</option>
-            {% for section in sections %}
-            <option value="{{ section.id }}" data-grade="{{ section.grade.id }}">
-                {{ section.name }}
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-</div>
-                </div>
+                        <div>
+                            <label for="gradeLevel" class="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
+                            <select id="gradeLevel" name="grade_level" 
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="">Select grade</option>
+                                {% for grade in grades %}
+                                <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="section" class="block text-xs font-medium text-gray-600 mb-1">Section</label>
+                            <select id="sectionSelect" name="section"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                <option value="">Select section</option>
+                                {% for section in sections %}
+                                <option value="{{ section.id }}" data-grade="{{ section.grade.id }}">
+                                    {{ section.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div> {% endcomment %}
 
                 <!-- Form Actions -->
                 <div class="flex justify-end space-x-3 pt-4">
@@ -103,6 +115,79 @@
             </form>
         </div>
     </div>
+
+    <!-- Collapsible Form: Assign Teacher -->
+    {% comment %} <div id="assignTeacherForm" class="hidden bg-white rounded-lg shadow-md overflow-hidden mb-8 border border-gray-200">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Assign Teacher to Class</h2>
+            <form method="POST" action="" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Select Teacher -->
+                    <div>
+                        <label for="teacher" class="block text-xs font-medium text-gray-600 mb-1">Teacher*</label>
+                        <select id="teacher" name="teacher_id" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">Select teacher</option>
+                            {% for teacher in all_teachers %}
+                            <option value="{{ teacher.id }}">{{ teacher.user.first_name }} {{ teacher.user.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Select Subject -->
+                    <div>
+                        <label for="subject" class="block text-xs font-medium text-gray-600 mb-1">Subject*</label>
+                        <select id="subject" name="subject_id" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">Select subject</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Grade and Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="grade" class="block text-xs font-medium text-gray-600 mb-1">Grade Level*</label>
+                        <select id="grade" name="grade_id" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">Select grade</option>
+                            {% for grade in grades %}
+                            <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="section" class="block text-xs font-medium text-gray-600 mb-1">Section*</label>
+                        <select id="section" name="section_id" required
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">Select section</option>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}" data-grade="{{ section.grade.id }}">{{ section.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelAssignBtn" class="px-4 py-2 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-1 focus:ring-green-500">
+                        Assign Teacher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div> {% endcomment %}
+
+
 
     <!-- Existing Teachers Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
@@ -286,7 +371,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-
 {% comment %} dynamically show sections {% endcomment %}
 document.addEventListener('DOMContentLoaded', function() {
     const gradeSelect = document.getElementById('gradeLevel');
@@ -463,5 +547,50 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 4000); // Remove after fade
     });
   });
+
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const assignForm = document.getElementById('assignTeacherForm');
+    const assignBtn = document.getElementById('assignTeacherBtn');
+    const cancelAssignBtn = document.getElementById('cancelAssignBtn');
+
+    assignBtn?.addEventListener('click', function () {
+        assignForm?.classList.toggle('hidden');
+
+        // Hide create form if open
+        const createForm = document.getElementById('teacherForm');
+        if (createForm && !createForm.classList.contains('hidden')) {
+            createForm.classList.add('hidden');
+            const toggleIcon = document.getElementById('toggleIcon');
+            if (toggleIcon) {
+                toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>';
+            }
+        }
+    });
+
+    cancelAssignBtn?.addEventListener('click', function () {
+        assignForm?.classList.add('hidden');
+    });
+
+    // Filter sections in Assign Form based on selected grade
+    const assignGradeSelect = document.getElementById('grade');
+    const assignSectionSelect = document.getElementById('section');
+
+    assignGradeSelect?.addEventListener('change', function () {
+        const gradeId = this.value;
+
+        Array.from(assignSectionSelect.options).forEach(option => {
+            const sectionGrade = option.getAttribute('data-grade');
+            if (!sectionGrade || gradeId === "" || sectionGrade === gradeId) {
+                option.classList.remove('hidden');
+            } else {
+                option.classList.add('hidden');
+            }
+        });
+
+        assignSectionSelect.value = ""; // Reset selection
+    });
+});
+
 </script>
 {% endblock %}
