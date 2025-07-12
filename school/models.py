@@ -79,3 +79,28 @@ class Subjects(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class Routine(models.Model):
+    DAY_CHOICES = [
+        ("Sunday", "Sunday"),
+        ("Monday", "Monday"),
+        ("Tuesday", "Tuesday"),
+        ("Wednesday", "Wednesday"),
+        ("Thursday", "Thursday"),
+        ("Friday", "Friday"),
+    ]
+
+    day = models.CharField(max_length=10, choices=DAY_CHOICES)
+    period_number = models.PositiveIntegerField()
+    subject = models.ForeignKey(Subjects, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
+    grade = models.ForeignKey(Grade, on_delete=models.CASCADE)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ['day', 'period_number', 'grade', 'section']
+
+    def __str__(self):
+        return f"{self.grade} {self.section} | {self.day} P{self.period_number} - {self.subject} ({self.teacher})"

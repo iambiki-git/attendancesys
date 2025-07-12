@@ -16,9 +16,9 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-    } {% endcomment %}
+    }
 
-    {% comment %} body {
+    body {
       font-family: 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
@@ -88,7 +88,6 @@
     th, td {
       padding: 1rem;
       text-align: center;
-      background: white;
       font-size: 1rem;
       border: 1px solid var(--border);
     }
@@ -97,12 +96,21 @@
       background: var(--light-accent);
       color: var(--accent);
       font-weight: bold;
-      cursor: text;
     }
 
     td:hover {
       background: #f0fff5;
       cursor: pointer;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 999;
     }
 
     .input-popup {
@@ -156,84 +164,66 @@
     .input-popup button:last-child:hover {
       background: #ccc;
     }
-
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      z-index: 999;
-    }
-
-    @media (max-width: 600px) {
-      .controls {
-        flex-direction: column;
-      }
-
-      .input-popup {
-        width: 90%;
-      }
-
-      th, td {
-        padding: 0.6rem;
-        font-size: 0.85rem;
-      }
-    }
   </style>
 
+<h2>Routine Builder</h2>
 
-<h2>📚 Multi-Class Routine Builder</h2>
+<!-- Global Save Button -->
+<button id="globalSaveBtn" onclick="saveAllRoutines()"
+  style="margin: 0 auto 1.5rem; display: block; padding: 0.7rem 1.5rem; font-size: 1rem;
+         background-color: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer;">
+  📂 Save All Routines
+</button>
 
+<!-- Controls -->
 <div class="controls">
   <label>Grade:
-  <select id="gradeSelect" name="grade_id" required>
+    <select id="gradeSelect" name="grade_id" required>
     <option value="">-- Select Grade --</option>
     {% for grade in grades %}
       <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
     {% endfor %}
   </select>
-</label>
-
-<label>Section:
-  <select id="sectionSelect" name="section_id" required>
+  </label>
+  <label>Section:
+    <select id="sectionSelect" name="section_id" required>
     <option value="">-- Select Section --</option>
   </select>
-</label>
-
+  </label>
   <label>Periods:
-    <input type="number" id="periodCount" min="1" max="10" value="8" />
+    <input type="number" id="periodCount" min="1" max="10" value="5" />
   </label>
   <label>
     <input type="checkbox" id="autoReplicate" checked />
-    Auto-replicate Monday ➞ All
+    Auto-replicate Sunday ➞ All
+  </label>
+  <label>
+    <input type="checkbox" id="usePreviousNames" />
+    Use previous column names
   </label>
   <button onclick="renderTable()">Generate Routine</button>
 </div>
 
+<!-- Routine Display -->
 <div id="tableContainer"></div>
 
+<!-- Popup Editor -->
 <div class="overlay" id="overlay" style="display: none;"></div>
 <div class="input-popup" id="popup" style="display: none;">
   <label>Subject:
     <select id="subjectInput">
-      <option value="">select subject</option>
-      {% if subjects %}
-        {% for subject in subjects %}
-          <option value="{{ subject.name }}">{{ subject.name }}</option>
-        {% endfor %}
-      {% endif %}
+        <option value="">select subject</option>
+    {% for subject in subjects %}
+        <option value="{{ subject.name }}">{{ subject.name }}</option>
+    {% endfor %}
     </select>
   </label>
   <label>Teacher:
     <select id="teacherInput">
-      <option value="">select teacher</option>
-      {% if teachers %}
-        {% for teacher in teachers %}
-        <option value="{{ teacher.user.first_name }}">{{ teacher.user.first_name }} {{ teacher.user.last_name }}</option>
-        {% endfor %}
-      {% endif %}
+        <option value="">select teacher</option>
+    {% for teacher in teachers %}
+        <option value="{{ teacher.user.get_full_name }}">{{ teacher.user.get_full_name }}</option>
+    {% endfor %}
     </select>
   </label>
   <button onclick="saveCell()">✅ Save</button>
@@ -241,7 +231,7 @@
 </div>
 
 <script>
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const tableContainer = document.getElementById('tableContainer');
 let selectedCell = null;
 let routineData = {};
@@ -266,34 +256,59 @@ function checkTeacherConflict(teacher, day, period, currentKey) {
 function renderTable() {
   const grade = document.getElementById('gradeSelect').value;
   const section = document.getElementById('sectionSelect').value;
-  if (!grade || !section) {
+  if (!grade && !section) {
     alert('⚠️ Please select both Grade and Section before generating the routine.');
     return;
   }
 
   const count = parseInt(document.getElementById('periodCount').value);
   const key = getKey();
+  const usePrev = document.getElementById('usePreviousNames')?.checked;
 
   if (!routineData[key]) routineData[key] = {};
-  if (!periodNames[key]) {
-  periodNames[key] = [];
-}
-for (let i = 0; i < count; i++) {
-  if (!periodNames[key][i]) {
-    periodNames[key][i] = `Period ${i + 1}`;
-  }
-}
 
+  if (!periodNames[key]) {
+    if (usePrev && Object.keys(periodNames).length > 0) {
+      const lastKey = Object.keys(periodNames).reverse().find(k => k !== key);
+      periodNames[key] = lastKey ? [...periodNames[lastKey]] : [];
+    } else {
+      periodNames[key] = [];
+    }
+  }
+
+  for (let i = 0; i < count; i++) {
+    if (!periodNames[key][i]) {
+      periodNames[key][i] = `Period ${i + 1}`;
+    }
+  }
 
   const currentData = routineData[key];
-
   const existing = document.getElementById(`routine-${key}`);
   if (existing) existing.remove();
 
   const wrapper = document.createElement('div');
   wrapper.id = `routine-${key}`;
   wrapper.style.marginBottom = '3rem';
-  wrapper.innerHTML += `<h3 style="text-align:center;margin:1rem 0;">Routine: Grade ${key}</h3>`;
+
+  const headerDiv = document.createElement('div');
+  headerDiv.style.display = 'flex';
+  headerDiv.style.justifyContent = 'space-between';
+  headerDiv.style.alignItems = 'center';
+  headerDiv.style.margin = '1rem 0';
+  headerDiv.innerHTML = `<h3 style="margin: 0;">Routine: Grade ${key}</h3>`;
+
+  const resetBtn = document.createElement('button');
+  resetBtn.textContent = 'Reset Routine';
+  resetBtn.style.cssText = 'background: #e74c3c; color: white; padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer;';
+  resetBtn.onclick = () => {
+    if (confirm('Are you sure you want to reset this routine?')) {
+      delete routineData[key];
+      renderTable();
+    }
+  };
+
+  headerDiv.appendChild(resetBtn);
+  wrapper.appendChild(headerDiv);
 
   const table = document.createElement('table');
   const thead = document.createElement('thead');
@@ -326,12 +341,13 @@ for (let i = 0; i < count; i++) {
   const tbody = document.createElement('tbody');
   days.forEach(day => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><strong>${day}</strong></td>`;
+    const rowLabel = document.createElement('td');
+    rowLabel.innerHTML = `<strong>${day}</strong>`;
+    tr.appendChild(rowLabel);
+
     let p = 1;
     while (p <= count) {
       const entry = currentData[day]?.[p];
-      const text = entry && entry.subject && entry.teacher ? `${entry.subject} (${entry.teacher})` : '';
-
       let span = 1;
       while (
         p + span <= count &&
@@ -344,48 +360,49 @@ for (let i = 0; i < count; i++) {
 
       const td = document.createElement('td');
       td.colSpan = span;
+      td.innerHTML = (entry && entry.subject && entry.teacher)
+        ? `<div style="position:relative;"><div style="position:absolute;top:4px;right:6px;font-weight:bold;color:#e74c3c;cursor:pointer;" onclick='resetCell(event, "${day}", ${p}, ${span}, "${key}")'>×</div><div>${entry.subject}</div><div style="font-size: 0.9em; color: #555;">(${entry.teacher})</div></div>`
+        : '';
+      td.onclick = () => openPopup(td, span, currentData);
       td.dataset.day = day;
       td.dataset.period = p;
-      td.dataset.colspan = span;
       td.dataset.key = key;
-      td.textContent = text;
-      td.onclick = () => openPopup(td, span, currentData);
-      tr.appendChild(td);
+      td.dataset.colspan = span;
 
+      tr.appendChild(td);
       p += span;
     }
+
     tbody.appendChild(tr);
   });
 
   table.appendChild(tbody);
   wrapper.appendChild(table);
-
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = '📂 Save Routine';
-  saveBtn.style.margin = '10px auto';
-  saveBtn.style.display = 'block';
-  saveBtn.style.padding = '0.7rem 1.5rem';
-  saveBtn.style.fontSize = '1rem';
-  saveBtn.style.backgroundColor = '#2ecc71';
-  saveBtn.style.color = 'white';
-  saveBtn.style.border = 'none';
-  saveBtn.style.borderRadius = '8px';
-  saveBtn.style.cursor = 'pointer';
-  saveBtn.onclick = () => {
-    alert(`Routine for ${key} saved ✅`);
-  };
-
-  wrapper.appendChild(saveBtn);
   tableContainer.appendChild(wrapper);
 }
 
+function resetCell(event, day, periodStart, span, key) {
+  event.stopPropagation();
+  for (let i = 0; i < span; i++) {
+    if (routineData[key] && routineData[key][day]) {
+      delete routineData[key][day][periodStart + i];
+    }
+  }
+  renderTable();
+}
+
+
+
+
+
 function openPopup(cell, colspan = 1, currentData) {
   selectedCell = { cell, colspan, currentData };
-  const content = cell.textContent;
-  const match = content.match(/^(.+?) \((.+?)\)$/);
-  document.getElementById('subjectInput').value = match ? match[1] : '';
-  document.getElementById('teacherInput').value = match ? match[2] : '';
-  //document.getElementById('teacherInput').value = match ? match[2] : 'Mr. Sharma';
+  const content = cell.innerText.trim().split('\n');
+  const subject = content[0] || '';
+  const teacher = content[1] ? content[1].replace(/[()]/g, '') : '';
+
+  document.getElementById('subjectInput').value = subject;
+  document.getElementById('teacherInput').value = teacher;
   document.getElementById('overlay').style.display = 'block';
   document.getElementById('popup').style.display = 'block';
 }
@@ -419,9 +436,9 @@ function saveCell() {
   }
 
   const replicate = document.getElementById('autoReplicate')?.checked ?? true;
-  if (replicate && day === 'Monday') {
+  if (replicate && day === 'Sunday') {
     days.forEach(d => {
-      if (d === 'Monday') return;
+      if (d === 'Sunday') return;
       if (!routineData[key][d]) routineData[key][d] = {};
       for (let i = 0; i < colspan; i++) {
         if (!checkTeacherConflict(teacher, d, periodStart + i, key)) {
@@ -432,9 +449,96 @@ function saveCell() {
   }
 
   closePopup();
-  renderTable(); // Refresh with updated data and merge cells
+  renderTable();
 }
 
+{% comment %} function saveAllRoutines() {
+  console.log('📘 All routines:', routineData);
+  alert('✅ All routines saved!');
+} {% endcomment %}
+{% comment %} function saveAllRoutines() {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const data = {
+    routines: routineData,
+    period_names: periodNames
+  };
+
+  fetch('{% url 'save_routine' %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('✅ All routines saved successfully!');
+    } else {
+      alert('❌ Error saving routines: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('❌ Failed to save routines');
+  });
+} {% endcomment %}
+function saveAllRoutines() {
+  // More reliable way to get CSRF token
+  const csrfToken = getCSRFToken();
+  
+  if (!csrfToken) {
+    alert('❌ CSRF token missing. Please refresh the page and try again.');
+    return;
+  }
+
+  const data = {
+    routines: routineData,
+    period_names: periodNames
+  };
+
+  fetch('/save_routine/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      alert('✅ All routines saved successfully!');
+      // Optional: Clear any unsaved changes indication
+    } else {
+      alert('❌ Error saving routines: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('❌ Failed to save routines. Check console for details.');
+  });
+}
+
+// Helper function to get CSRF token
+function getCSRFToken() {
+  // Try different ways to get the CSRF token
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  
+  const formToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  const metaToken = document.querySelector('meta[name=csrf-token]')?.content;
+  
+  return cookieValue || formToken || metaToken;
+}
 
 
   // Get the sections data from Django context
@@ -459,5 +563,4 @@ function saveCell() {
     }
   });
 </script>
-
 {% endblock %}

@@ -11,6 +11,7 @@ router.register(r'sections', SectionViewSet, basename='section')
 router.register(r'subjects', SubjectViewSet, basename='subject')
 
 
+
 urlpatterns = [
     path('api/', include(router.urls)),
 ]

@@ -42,3 +42,8 @@ class AttendanceAdmin(admin.ModelAdmin):
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'grade', 'school')
 
+from school.models import Routine
+@admin.register(Routine)
+class RoutineEntryAdmin(admin.ModelAdmin):
+    list_display = ('grade', 'section', 'day', 'period_number', 'subject', 'teacher')
+    list_filter = ('grade', 'section', 'day', 'teacher')

@@ -68,3 +68,4 @@ class SubjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         serializer.save(school=user.school)
+

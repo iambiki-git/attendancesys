@@ -1234,19 +1234,86 @@ def upload_students_csv(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-def setup_routine(request):
-    grade_id = request.GET.get('grade_id')
-    section_id = request.GET.get('section_id')
+def routine_setup(request):
+    school = request.user.school
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
+    sections = Section.objects.filter(school=school).order_by('name')
+    subjects = Subjects.objects.filter(school=school)
+    teachers = TeacherProfile.objects.filter(school=school)
 
-    grade = get_object_or_404(Grade, id=grade_id)
-    section = get_object_or_404(Section, id=section_id, grade=grade)
+    sections_by_grade = {}
+    for grade in grades:
+        sections_list = list(sections.filter(grade=grade).values('id', 'name'))
+        sections_by_grade[grade.id] = sections_list
 
     context = {
-        'grade': grade,
-        'section': section,
-        'subjects': Subjects.objects.filter(grade=grade),
-        'teachers': TeacherProfile.objects.filter(school=request.user.school),
-        'days': ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        'periods': range(1, 9),
+        'grades': grades,
+        'sections_by_grade': sections_by_grade,
+        'subjects': subjects,
+        'teachers': teachers,
     }
-    return render(request, 'dashboard/school_dashboard/routine_setup.html', context)
+    return render(request, 'dashboard/school_dashboard/routine_setupp.html', context)
+
+
+from school.models import Routine
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt  # Only if you're having CSRF issues - better to properly handle CSRF
+def save_routine(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            routines = data.get('routines', {})
+            period_names = data.get('period_names', {})
+            
+            # First delete all existing routines for these classes
+            # (This ensures we don't have duplicate entries)
+            for key in routines.keys():
+                grade_id, section_id = key.split('-')
+                Routine.objects.filter(grade_id=grade_id, section_id=section_id).delete()
+            
+            # Save new routines
+            for key, days_data in routines.items():
+                grade_id, section_id = key.split('-')
+                for day, periods_data in days_data.items():
+                    for period_num, period_data in periods_data.items():
+                        Routine.objects.create(
+                            day=day,
+                            period_number=period_num,
+                            subject_id=period_data['subject'],  # Assuming subject is ID
+                            teacher_id=period_data['teacher'],   # Assuming teacher is ID
+                            grade_id=grade_id,
+                            section_id=section_id,
+                            school_id=request.user.school.id  # Or however you get school
+                        )
+            
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def get_routine(request):
+    grade_id = request.GET.get('grade')
+    section_id = request.GET.get('section')
+    
+    routines = Routine.objects.filter(grade_id=grade_id, section_id=section_id)
+    
+    data = {
+        'routines': {},
+        'period_names': []
+    }
+    
+    for routine in routines:
+        day = routine.day
+        if day not in data['routines']:
+            data['routines'][day] = {}
+        
+        data['routines'][day][routine.period_number] = {
+            'subject': routine.subject_id,
+            'teacher': routine.teacher_id
+        }
+    
+    # You might need to adjust how you store period names
+    return JsonResponse(data)

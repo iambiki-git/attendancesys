@@ -146,6 +146,6 @@ API_BASE_URL = "http://127.0.0.1:8000/api/"
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # short-lived
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # longer-lived
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # short-lived
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # longer-lived
 }

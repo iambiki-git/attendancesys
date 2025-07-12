@@ -18,7 +18,9 @@ urlpatterns = [
     path('grades/edit/<int:pk>/', create_edit_grade, name='update_grade'),
     path('grades/delete/<int:pk>/', delete_grade, name='delete_grade'),
 
-    path('routine/setup/', setup_routine, name='setup_routine'),
+    path('routine/setup/', routine_setup, name='routine_setup'),
+    path('save_routine/', save_routine, name='save_routine'),
+
 
     path('sections/save/', create_edit_section, name='create_section'),
     path('sections/save/<int:pk>/', create_edit_section, name='update_section'),

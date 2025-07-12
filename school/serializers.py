@@ -42,3 +42,5 @@ class SubjectSerializer(serializers.ModelSerializer):
         model = Subjects
         fields = '__all__'
         read_only_fields = ['school']  # so clients can't set it directly
+
+
