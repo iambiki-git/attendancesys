@@ -211,6 +211,11 @@ def students_view(request):
         students = students.filter(section_id=section_id)
     students = students.order_by('name')
 
+    # Pagination
+    # paginator = Paginator(students, 3)  # Show 10 students per page
+    # page_number = request.GET.get('page')
+    # page_obj = paginator.get_page(page_number)
+
     context = {
         'grades': grades,
         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
@@ -635,7 +640,7 @@ def teachers_view(request):
     sections = Section.objects.filter(school=school).order_by('name')
     subjects = Subjects.objects.filter(school=school).order_by('id')
 
-    teachers = TeacherProfile.objects.filter(school=school)
+    all_teachers = TeacherProfile.objects.filter(school=school).order_by('user__first_name')
     #print(teachers)
 
     # Prepare sections data grouped by grade
@@ -646,11 +651,16 @@ def teachers_view(request):
             for section in sections.filter(grade=grade)
         ]
 
+    # Pagination
+    paginator = Paginator(all_teachers, 6)  # Show 10 teachers per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
         'grades': grades,
         'sections': sections,  # All sections for initial load
         'sections_by_grade': json.dumps(sections_by_grade),
-        'teachers': teachers,
+        'teachers': page_obj,
         'subjects': subjects,
     }
     return render(request, 'dashboard/school_dashboard/teachers_page.html', context)
@@ -789,9 +799,23 @@ def teacher_dashboard(request):
     section = teacher.section
     today_ad = timezone.now().date()
     today_bs = nepali_datetime.date.from_datetime_date(today_ad)
+    first_day_of_month = today_ad.replace(day=1)
+
 
     nepali_weekday = today_bs.strftime("%A")
     nepali_date_str = today_bs.strftime("%B %d, %Y")
+
+    # Step 1: Filter records for the month
+    monthly_attendance = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date__range=(first_day_of_month, today_ad)
+    )
+
+    # Step 2: Total unique attendance days
+    unique_dates = monthly_attendance.values_list('date', flat=True).distinct()
+    school_days = unique_dates.count()
 
     # total students
     students = Student.objects.filter(
@@ -800,6 +824,15 @@ def teacher_dashboard(request):
         school=teacher.school
     )
     students_count = students.count()
+
+    # Step 4: Total expected attendance records
+    total_possible_attendance = school_days * students_count
+
+    # Step 5: Actual Present + Late records
+    total_present = monthly_attendance.filter(status__in=['Present', 'Late']).count()
+
+    # Step 6: Calculate percentage
+    overall_attendance_percent = round((total_present / total_possible_attendance) * 100, 2) if total_possible_attendance > 0 else 0
 
     # Present = Present + Late
     present_count = Attendance.objects.filter(
@@ -829,14 +862,21 @@ def teacher_dashboard(request):
     ).count()
 
     # Attendance percentage late lai ni present manne
-    attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
+    #attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
+    # Calculate percentages
+    present_percent = round((present_count / students_count) * 100, 2) if students_count > 0 else 0
+    late_percent = round((late_count / students_count) * 100, 2) if students_count > 0 else 0
+    absent_percent = round((absent_count / students_count) * 100, 2) if students_count > 0 else 0
 
     context = {
         'students_count': students_count,
         'present_count': present_count,
         'absent_count': absent_count,
         'late_count': late_count,
-        'attendance_percentage': attendance_percentage,
+        'overall_attendance_percent': overall_attendance_percent,
+        'present_percent': present_percent,
+        'late_percent': late_percent,
+        'absent_percent': absent_percent,
         'teacher': teacher,
         'grade': grade,
         'section': section,
@@ -1119,3 +1159,48 @@ def edit_subject(request, pk):
         messages.error(request, f"Failed to connect to API: {str(e)}")
 
     return redirect('subjects')
+
+
+def overall_attendance(request):
+    return render(request, 'dashboard/school_dashboard/overall_attendance.html')
+
+
+import csv
+def upload_students_csv(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        grade_id = request.POST.get('grade_id')
+        section_id = request.POST.get('section_id')
+
+        # Validate grade and section
+        try:
+            grade = Grade.objects.get(id=grade_id)
+            section = Section.objects.get(id=section_id)
+        except (Grade.DoesNotExist, Section.DoesNotExist):
+            messages.error(request, "Invalid Grade or Section.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        # Read and parse the CSV file
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.reader(decoded_file)
+
+        created_count = 0
+        for row in reader:
+            if len(row) < 2:
+                continue  # Skip malformed rows
+
+            name, roll_no = row[0].strip(), row[1].strip()
+            if name and roll_no:
+                Student.objects.create(
+                    name=name,
+                    roll_number=roll_no,
+                    grade=grade,
+                    section=section
+                )
+                created_count += 1
+
+        messages.success(request, f"{created_count} students imported successfully.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    messages.error(request, "No CSV file uploaded.")
+    return redirect(request.META.get('HTTP_REFERER', '/'))

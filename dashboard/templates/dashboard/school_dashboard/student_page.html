@@ -37,9 +37,78 @@
         <button type="button" onclick="addNewStudentRow()" class="bg-green-600 text-white px-4 py-2 rounded">
           Add Student
         </button>
+
+        <!-- Upload CSV Form -->
+        {% comment %} <form method="POST" action="" enctype="multipart/form-data" class="flex items-center gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="grade_id" value="{{ request.GET.grade_id }}">
+          <input type="hidden" name="section_id" value="{{ request.GET.section_id }}">
+          <input type="file" name="csv_file" accept=".csv" class="border px-2 py-1 text-sm rounded" required>
+          <button type="submit" class="bg-blue-600 text-white px-3 py-1 text-sm rounded">Upload CSV</button>
+        </form> {% endcomment %}
+
+        {% comment %} <form method="POST" action="" enctype="multipart/form-data" class="relative">
+          {% csrf_token %}
+          <input type="hidden" name="grade_id" value="{{ request.GET.grade_id }}">
+          <input type="hidden" name="section_id" value="{{ request.GET.section_id }}">
+
+          <!-- Hidden file input -->
+          <input 
+            type="file" 
+            name="csv_file" 
+            accept=".csv" 
+            class="hidden" 
+            id="csvFileInput"
+            onchange="this.form.submit()"
+            required
+          >
+
+          <!-- Label as button -->
+          <label 
+            for="csvFileInput" 
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded shadow-sm transition duration-150 cursor-pointer"
+          >
+            <!-- Icon (import/arrow style) -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Import CSV
+          </label>
+        </form> {% endcomment %}
+        <form method="POST" action="{% url 'upload_students_csv' %}" enctype="multipart/form-data" class="relative">
+    {% csrf_token %}
+    <input type="hidden" name="grade_id" value="{{ request.GET.grade_id }}">
+    <input type="hidden" name="section_id" value="{{ request.GET.section_id }}">
+
+    <!-- Hidden file input -->
+    <input 
+      type="file" 
+      name="csv_file" 
+      accept=".csv" 
+      class="hidden" 
+      id="csvFileInput"
+      onchange="this.form.submit()"
+      required
+    >
+
+    <!-- Label as button -->
+    <label 
+      for="csvFileInput" 
+      class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded shadow-sm transition duration-150 cursor-pointer"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      Import CSV
+    </label>
+  </form>
+
+
       {% endif %}
     </div>
   </form>
+
+  
 
   <!-- Table and Empty State -->
   {% if request.GET.grade_id and request.GET.section_id %}
@@ -107,6 +176,21 @@
     </div>
   {% endif %}
 </div>
+
+{% comment %} <div class="mt-4 flex justify-center gap-2">
+  {% if students.has_previous %}
+    <a href="?page=1{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">First</a>
+    <a href="?page={{ students.previous_page_number }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Previous</a>
+  {% endif %}
+
+  <span class="px-3 py-1 bg-blue-100 rounded">Page {{ students.number }} of {{ students.paginator.num_pages }}</span>
+
+  {% if students.has_next %}
+    <a href="?page={{ students.next_page_number }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Next</a>
+    <a href="?page={{ students.paginator.num_pages }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Last</a>
+  {% endif %}
+</div> {% endcomment %}
+
 
 <!-- Template for new student row (hidden by default) -->
 <template id="newStudentRowTemplate">

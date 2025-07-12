@@ -177,11 +177,9 @@
                             <span class="view-mode">{{ teacher.subjects }}</span>
                             <select class="edit-mode hidden subject-input w-full px-2 py-1 text-sm border rounded">
                                 <option value="">Select subject</option>
-                                <option value="Mathematics" {% if teacher.subjects == "Mathematics" %}selected{% endif %}>Mathematics</option>
-                                <option value="Science" {% if teacher.subjects == "Science" %}selected{% endif %}>Science</option>
-                                <option value="English" {% if teacher.subjects == "English" %}selected{% endif %}>English</option>
-                                <option value="Social Studies" {% if teacher.subjects == "Social Studies" %}selected{% endif %}>Social Studies</option>
-                                <option value="Computer Science" {% if teacher.subjects == "Computer Science" %}selected{% endif %}>Computer Science</option>
+                                {% for subject in subjects %}
+                                    <option value="{{ subject }}" {% if teacher.subjects == subject %}selected{% endif %}>{{ subject }}</option>
+                                {% endfor %} 
                             </select>
                         </td>
                         
@@ -235,6 +233,21 @@
 
         </div>
     </div>
+</div>
+
+<!-- Pagination controls -->
+<div class="mt-4 flex justify-center gap-2">
+  {% if teachers.has_previous %}
+    <a href="?page=1" class="px-3 py-1 bg-gray-200 rounded">First</a>
+    <a href="?page={{ teachers.previous_page_number }}" class="px-3 py-1 bg-gray-200 rounded">Previous</a>
+  {% endif %}
+
+  <span class="px-3 py-1 bg-blue-100 rounded">Page {{ teachers.number }} of {{ teachers.paginator.num_pages }}</span>
+
+  {% if teachers.has_next %}
+    <a href="?page={{ teachers.next_page_number }}" class="px-3 py-1 bg-gray-200 rounded">Next</a>
+    <a href="?page={{ teachers.paginator.num_pages }}" class="px-3 py-1 bg-gray-200 rounded">Last</a>
+  {% endif %}
 </div>
 
 <div id="toast-container" class="fixed bottom-5 right-5 space-y-3 z-50 flex flex-col items-end">

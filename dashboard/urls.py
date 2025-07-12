@@ -20,6 +20,10 @@ urlpatterns = [
     path('sections/save/', create_edit_section, name='create_section'),
     path('sections/save/<int:pk>/', create_edit_section, name='update_section'),
     path('section/delete/<int:pk>/', delete_section, name='delete_section'),
+    path('attendance/', overall_attendance, name='overall_attendance'),
+
+    path('students/upload/', upload_students_csv, name='upload_students_csv'),
+
 
     path('create/students/', create_student, name='create_student'),
     path('students/update/', update_student, name='update_student'),
