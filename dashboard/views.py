@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
-from school.models import Student, Attendance, Grade, Section, TeacherProfile
+from school.models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
 from users.models import School
 from django.contrib import messages
 import requests
@@ -633,6 +633,7 @@ def teachers_view(request):
     school = request.user.school
     grades = Grade.objects.filter(school=school).order_by('grade_number')
     sections = Section.objects.filter(school=school).order_by('name')
+    subjects = Subjects.objects.filter(school=school).order_by('id')
 
     teachers = TeacherProfile.objects.filter(school=school)
     #print(teachers)
@@ -649,7 +650,8 @@ def teachers_view(request):
         'grades': grades,
         'sections': sections,  # All sections for initial load
         'sections_by_grade': json.dumps(sections_by_grade),
-        'teachers': teachers
+        'teachers': teachers,
+        'subjects': subjects,
     }
     return render(request, 'dashboard/school_dashboard/teachers_page.html', context)
 
@@ -985,3 +987,135 @@ def delete_teacher(request, id):
     messages.success(request, 'Teacher deleted successfully.')
     return redirect('teachers')
     
+
+def subjects(request):
+    subjects = Subjects.objects.filter(school=request.user.school)
+    context = {
+        'subjects': subjects,
+    }
+    return render(request, 'dashboard/school_dashboard/subjects.html', context)
+
+
+def add_subject(request):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')  # adjust this to your subjects list URL name
+
+    subject_name = request.POST.get('name')
+    school = request.user.school
+    if not subject_name:
+        messages.error(request, 'Subject name cannot be empty.')
+        return redirect('subjects')
+    
+    if Subjects.objects.filter(name=subject_name, school=school).exists():
+        messages.error(request, 'This subject is already exists.')
+        return redirect('subjects')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    api_url = f"{settings.API_BASE_URL}subjects/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        'name': subject_name,
+        'school': school.id
+    }
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers)
+
+        if response.status_code == 201:
+            messages.success(request, f'Subject "{subject_name}" added successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect('subjects')
+
+
+def delete_subject(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')  # adjust to your subjects list URL name
+
+    # Example: get access token (replace with your logic)
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    # Build API URL for the DRF endpoint
+    api_url = f"{settings.API_BASE_URL}subjects/{pk}/"
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        response = requests.delete(api_url, headers=headers)
+
+        if response.status_code == 204:
+            messages.success(request, 'Subject deleted successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect('subjects')
+
+
+def edit_subject(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')
+
+    new_name = request.POST.get('name')
+    if not new_name:
+        messages.error(request, 'Subject name cannot be empty.')
+        return redirect('subjects')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    api_url = f"{settings.API_BASE_URL}subjects/{pk}/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    payload = {'name': new_name}
+
+    try:
+        response = requests.patch(api_url, json=payload, headers=headers)
+
+        if response.status_code == 200:
+            messages.success(request, f'Subject updated successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect('subjects')

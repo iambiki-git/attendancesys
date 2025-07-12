@@ -72,4 +72,9 @@ class Attendance(models.Model):
     class Meta:
         unique_together = ('student', 'date')
 
-  
+class Subjects(models.Model):
+    name = models.CharField(max_length=50)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='subjects')
+
+    def __str__(self):
+        return self.name

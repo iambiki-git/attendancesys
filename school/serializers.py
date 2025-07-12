@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Student, Attendance, Grade, Section, TeacherProfile
+from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
 
 class GradeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,3 +33,12 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance
         fields = ['id', 'student', 'student_name', 'date', 'status', 'notes']
+
+
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subjects
+        fields = '__all__'
+        read_only_fields = ['school']  # so clients can't set it directly
