@@ -20,6 +20,8 @@ urlpatterns = [
 
     path('routine/setup/', routine_setup, name='routine_setup'),
     path('save_routine/', save_routine, name='save_routine'),
+    path('load_routine/', load_routine, name='load_routine'),
+
 
 
     path('sections/save/', create_edit_section, name='create_section'),

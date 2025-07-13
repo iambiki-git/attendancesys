@@ -1255,65 +1255,86 @@ def routine_setup(request):
     return render(request, 'dashboard/school_dashboard/routine_setupp.html', context)
 
 
-from school.models import Routine
+# views.py
+import traceback
 from django.views.decorators.csrf import csrf_exempt
-@csrf_exempt  # Only if you're having CSRF issues - better to properly handle CSRF
+from school.models import Routine
+@csrf_exempt
+@login_required
 def save_routine(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             routines = data.get('routines', {})
             period_names = data.get('period_names', {})
-            
-            # First delete all existing routines for these classes
-            # (This ensures we don't have duplicate entries)
-            for key in routines.keys():
-                grade_id, section_id = key.split('-')
-                Routine.objects.filter(grade_id=grade_id, section_id=section_id).delete()
-            
-            # Save new routines
-            for key, days_data in routines.items():
-                grade_id, section_id = key.split('-')
-                for day, periods_data in days_data.items():
-                    for period_num, period_data in periods_data.items():
-                        Routine.objects.create(
-                            day=day,
-                            period_number=period_num,
-                            subject_id=period_data['subject'],  # Assuming subject is ID
-                            teacher_id=period_data['teacher'],   # Assuming teacher is ID
-                            grade_id=grade_id,
-                            section_id=section_id,
-                            school_id=request.user.school.id  # Or however you get school
-                        )
-            
+            school = request.user.school  # assumes user has a related school
+
+            for key, days in routines.items():
+                grade_id, section_id = key.split("-")
+                grade = Grade.objects.get(id=grade_id)
+                section = Section.objects.get(id=section_id)
+
+                for day, periods in days.items():
+                    for period_number_str, entry in periods.items():
+                        try:
+                            subject = Subjects.objects.get(id=int(entry['subject_id']))
+                            teacher = TeacherProfile.objects.get(id=int(entry['teacher_id']))
+                            period_number = int(period_number_str)
+
+                            Routine.objects.update_or_create(
+                                day=day,
+                                period_number=period_number,
+                                grade=grade,
+                                section=section,
+                                defaults={
+                                    'subject': subject,
+                                    'teacher': teacher,
+                                    'school': school
+                                }
+                            )
+                        except Exception as sub_e:
+                            traceback.print_exc()
+                            return JsonResponse({
+                                'success': False,
+                                'error': f'Error on {day} period {period_number_str}: {str(sub_e)}'
+                            }, status=400)
+
             return JsonResponse({'success': True})
-            
+
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
-def get_routine(request):
+@login_required
+def load_routine(request):
     grade_id = request.GET.get('grade')
     section_id = request.GET.get('section')
-    
+
+    if not grade_id or not section_id:
+        return JsonResponse({'error': 'Missing grade or section'}, status=400)
+
     routines = Routine.objects.filter(grade_id=grade_id, section_id=section_id)
-    
-    data = {
-        'routines': {},
-        'period_names': []
-    }
-    
-    for routine in routines:
-        day = routine.day
-        if day not in data['routines']:
-            data['routines'][day] = {}
-        
-        data['routines'][day][routine.period_number] = {
-            'subject': routine.subject_id,
-            'teacher': routine.teacher_id
+
+    routine_data = {}
+    for entry in routines:
+        key = f"{entry.grade.id}-{entry.section.id}"
+        day = entry.day
+        period = entry.period_number
+
+        if key not in routine_data:
+            routine_data[key] = {}
+        if day not in routine_data[key]:
+            routine_data[key][day] = {}
+
+        routine_data[key][day][period] = {
+            "subject_id": entry.subject.id,
+            "subject": entry.subject.name,
+            "teacher_id": entry.teacher.id,
+            "teacher": entry.teacher.user.get_full_name(),
         }
-    
-    # You might need to adjust how you store period names
-    return JsonResponse(data)
+
+    return JsonResponse({'routine': routine_data})
+

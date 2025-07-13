@@ -166,7 +166,7 @@
     }
   </style>
 
-<h2>Routine Builder</h2>
+<h2>Class Routine Manager</h2>
 
 <!-- Global Save Button -->
 <button id="globalSaveBtn" onclick="saveAllRoutines()"
@@ -202,6 +202,8 @@
     Use previous column names
   </label>
   <button onclick="renderTable()">Generate Routine</button>
+  <button onclick="loadRoutine()">🔄 Load Routine</button>
+
 </div>
 
 <!-- Routine Display -->
@@ -214,7 +216,7 @@
     <select id="subjectInput">
         <option value="">select subject</option>
     {% for subject in subjects %}
-        <option value="{{ subject.name }}">{{ subject.name }}</option>
+        <option value="{{ subject.id }}">{{ subject.name }}</option>
     {% endfor %}
     </select>
   </label>
@@ -222,7 +224,7 @@
     <select id="teacherInput">
         <option value="">select teacher</option>
     {% for teacher in teachers %}
-        <option value="{{ teacher.user.get_full_name }}">{{ teacher.user.get_full_name }}</option>
+        <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
     {% endfor %}
     </select>
   </label>
@@ -243,7 +245,7 @@ function getKey() {
   return `${grade}-${section}`;
 }
 
-function checkTeacherConflict(teacher, day, period, currentKey) {
+{% comment %} function checkTeacherConflict(teacher, day, period, currentKey) {
   for (const key in routineData) {
     if (key !== currentKey) {
       const dayData = routineData[key]?.[day];
@@ -251,15 +253,34 @@ function checkTeacherConflict(teacher, day, period, currentKey) {
     }
   }
   return false;
+} {% endcomment %}
+ function checkTeacherConflict(teacherId, day, period, currentKey) {
+  for (const key in routineData) {
+    if (key !== currentKey) {
+      const entry = routineData[key]?.[day]?.[period];
+      if (entry && entry.teacher_id === teacherId) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
+
 
 function renderTable() {
   const grade = document.getElementById('gradeSelect').value;
-  const section = document.getElementById('sectionSelect').value;
-  if (!grade && !section) {
+  const sectionSelect = document.getElementById('sectionSelect');
+  const section = sectionSelect.value;
+
+  // Allow if grade is selected and either:
+  // - sectionSelect is disabled
+  // - sectionSelect has no options (e.g., no sections exist for that grade)
+  // - or section is selected
+  if (!grade || (sectionSelect && !section && !sectionSelect.disabled && sectionSelect.options.length > 1)) {
     alert('⚠️ Please select both Grade and Section before generating the routine.');
     return;
   }
+
 
   const count = parseInt(document.getElementById('periodCount').value);
   const key = getKey();
@@ -392,10 +413,7 @@ function resetCell(event, day, periodStart, span, key) {
 }
 
 
-
-
-
-function openPopup(cell, colspan = 1, currentData) {
+{% comment %} function openPopup(cell, colspan = 1, currentData) {
   selectedCell = { cell, colspan, currentData };
   const content = cell.innerText.trim().split('\n');
   const subject = content[0] || '';
@@ -405,7 +423,51 @@ function openPopup(cell, colspan = 1, currentData) {
   document.getElementById('teacherInput').value = teacher;
   document.getElementById('overlay').style.display = 'block';
   document.getElementById('popup').style.display = 'block';
+} {% endcomment %}
+
+function openPopup(cell, colspan = 1, currentData) {
+  selectedCell = { cell, colspan, currentData };
+
+  const day = cell.dataset.day;
+  const period = parseInt(cell.dataset.period);
+  const key = cell.dataset.key;
+
+  const teacherSelect = document.getElementById('teacherInput');
+  const allOptions = Array.from(teacherSelect.options);
+
+  // Reset all first
+  allOptions.forEach(opt => {
+    opt.disabled = false;
+    opt.textContent = opt.textContent.replace(' (busy)', '');
+  });
+
+  // Disable if same teacher is already booked in another section
+  for (const k in routineData) {
+    if (k === key) continue;
+
+    const teacherEntry = routineData[k]?.[day]?.[period];
+    if (teacherEntry?.teacher_id) {
+      const match = allOptions.find(opt => opt.value === teacherEntry.teacher_id);
+      if (match) {
+        match.disabled = true;
+        match.textContent += ' (busy)';
+      }
+    }
+  }
+
+  // Pre-fill subject/teacher if editing
+  const content = cell.innerText.trim().split('\n');
+  const subject = content[0] || '';
+  const teacher = content[1] ? content[1].replace(/[()]/g, '') : '';
+
+  document.getElementById('subjectInput').value = subject;
+  teacherSelect.value = teacher;
+
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('popup').style.display = 'block';
 }
+
+
 
 function closePopup() {
   selectedCell = null;
@@ -413,7 +475,7 @@ function closePopup() {
   document.getElementById('popup').style.display = 'none';
 }
 
-function saveCell() {
+{% comment %} function saveCell() {
   const subject = document.getElementById('subjectInput').value;
   const teacher = document.getElementById('teacherInput').value;
   const { cell, colspan, currentData } = selectedCell;
@@ -450,7 +512,64 @@ function saveCell() {
 
   closePopup();
   renderTable();
+} {% endcomment %}
+
+function saveCell() {
+  const subjectSelect = document.getElementById('subjectInput');
+  const teacherSelect = document.getElementById('teacherInput');
+
+  const subjectId = subjectSelect.value;
+  const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
+
+  const teacherId = teacherSelect.value;
+  const teacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
+
+  const { cell, colspan, currentData } = selectedCell;
+  const day = cell.dataset.day;
+  const periodStart = parseInt(cell.dataset.period);
+  const key = cell.dataset.key;
+
+  for (let i = 0; i < colspan; i++) {
+    if (checkTeacherConflict(teacherId, day, periodStart + i, key)) {
+      alert(`❌ Teacher ${teacherName} is already assigned at Period ${periodStart + i} on ${day} in another class.`);
+      return;
+    }
+  }
+
+  if (!routineData[key]) routineData[key] = {};
+  if (!routineData[key][day]) routineData[key][day] = {};
+
+  for (let i = 0; i < colspan; i++) {
+    routineData[key][day][periodStart + i] = {
+      subject_id: subjectId,
+      subject: subjectName,
+      teacher_id: teacherId,
+      teacher: teacherName
+    };
+  }
+
+  const replicate = document.getElementById('autoReplicate')?.checked ?? true;
+  if (replicate && day === 'Sunday') {
+    days.forEach(d => {
+      if (d === 'Sunday') return;
+      if (!routineData[key][d]) routineData[key][d] = {};
+      for (let i = 0; i < colspan; i++) {
+        if (!checkTeacherConflict(teacherId, d, periodStart + i, key)) {
+          routineData[key][d][periodStart + i] = {
+            subject_id: subjectId,
+            subject: subjectName,
+            teacher_id: teacherId,
+            teacher: teacherName
+          };
+        }
+      }
+    });
+  }
+
+  closePopup();
+  renderTable();
 }
+
 
 {% comment %} function saveAllRoutines() {
   console.log('📘 All routines:', routineData);
@@ -498,7 +617,10 @@ function saveAllRoutines() {
     period_names: periodNames
   };
 
-  fetch('/save_routine/', {
+  console.log("routine data", routineData);
+  console.log("period names", periodNames);
+
+  fetch('{% url 'save_routine' %}', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -561,6 +683,78 @@ function getCSRFToken() {
         sectionSelect.appendChild(option);
       });
     }
-  });
+  }); 
+  {% comment %} gradeSelect.addEventListener("change", function () {
+  const gradeId = this.value;
+
+  // Clear section dropdown
+  sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+
+  // 🧹 Clear routine display
+  tableContainer.innerHTML = '';
+
+  // 🧹 Remove old routine data (unrelated sections)
+  for (const key in routineData) {
+    if (!key.startsWith(`${gradeId}-`)) {
+      delete routineData[key];
+    }
+  }
+
+  // 🧹 Remove old period names
+  for (const key in periodNames) {
+    if (!key.startsWith(`${gradeId}-`)) {
+      delete periodNames[key];
+    }
+  }
+
+  // ✅ Load new section options for this grade
+  if (sectionsByGrade[gradeId]) {
+    sectionsByGrade[gradeId].forEach(section => {
+      const option = document.createElement("option");
+      option.value = section.id;
+      option.textContent = section.name;
+      sectionSelect.appendChild(option);
+    });
+  }
+}); {% endcomment %}
+
+
+
+function loadRoutine() {
+  const gradeId = document.getElementById("gradeSelect").value;
+  const sectionId = document.getElementById("sectionSelect").value;
+
+  if (!gradeId || !sectionId) {
+    alert("⚠️ Please select both Grade and Section first.");
+    return;
+  }
+
+  const key = `${gradeId}-${sectionId}`;
+
+  fetch(`/load_routine/?grade=${gradeId}&section=${sectionId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.routine && data.routine[key]) {
+        //routineData[key] = data.routine[key];
+        routineData = data.routine; // merge all sections
+
+        //alert("✅ Routine loaded successfully.");
+      } else {
+        routineData[key] = {};
+        alert("ℹ️ No saved routine found. You can generate a new one.");
+      }
+
+      periodNames[key] = periodNames[key] || [];  // safe fallback
+      renderTable();
+    })
+    .catch(err => {
+      console.error("❌ Failed to load routine", err);
+      alert("❌ Error loading routine. Check console.");
+    });
+} 
+
+
+
+
 </script>
 {% endblock %}

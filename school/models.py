@@ -100,7 +100,7 @@ class Routine(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ['day', 'period_number', 'grade', 'section']
+        unique_together = ['day', 'period_number', 'grade', 'section', 'school']
 
     def __str__(self):
         return f"{self.grade} {self.section} | {self.day} P{self.period_number} - {self.subject} ({self.teacher})"
