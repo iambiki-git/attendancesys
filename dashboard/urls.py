@@ -47,5 +47,6 @@ urlpatterns = [
     path('student/attendance/', attendance, name='attendance'),
     path('submit/attendance/', submit_attendance, name='submit_attendance'),
     path('student/status/', student_status, name='student_status'),
+    path('routine/', teacher_routine_view, name='teacher_routine'),
 
 ]

@@ -73,10 +73,10 @@
         class="{% if request.resolver_match.url_name == 'routine_setup' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Routine Setup
       </a>
-      <a href="" 
+      {% comment %} <a href="" 
         class="{% if request.resolver_match.url_name == 'reports' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Reports
-      </a>
+      </a> {% endcomment %}
       {% elif request.user.is_teacher %}
       <a href="{% url 'teacher_dashboard' %}" 
         class="{% if request.resolver_match.url_name == 'teacher_dashboard' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
@@ -89,6 +89,10 @@
       <a href="{% url 'attendance' %}" 
         class="{% if request.resolver_match.url_name == 'attendance' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Attendance
+      </a>
+      <a href="{% url 'teacher_routine' %}" 
+        class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+        Routine
       </a>
       <a href="#" 
         class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">

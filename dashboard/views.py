@@ -676,22 +676,27 @@ def create_teacher(request):
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        school=request.user.school
 
-        grade_id = request.POST.get('grade_level')
-        section_id = request.POST.get('section')
-        subjects = request.POST.get('subject')
+        # grade_id = request.POST.get('grade_level')
+        # section_id = request.POST.get('section')
+        # subjects = request.POST.get('subject')
 
         # Validate required fields
-        if not all([username, email, password, grade_id, section_id]):
+        if not all([username, email, password, first_name, last_name]):
             messages.error(request, "All required fields must be filled.")
             return redirect('teachers')
+        
+        # if not all([username, email, password, grade_id, section_id]):
+        #     messages.error(request, "All required fields must be filled.")
+        #     return redirect('teachers')
 
         # Check for duplicates
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(username=username, school=school).exists():
             messages.warning(request, "Username already taken.")
             return redirect('teachers')
 
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email=email, school=school).exists():
             messages.warning(request, "Email already registered.")
             return redirect('teachers')
 
@@ -710,15 +715,15 @@ def create_teacher(request):
             )
 
             # ✅ Get Grade and Section
-            grade = Grade.objects.get(id=grade_id, school=school)
-            section = Section.objects.get(id=section_id, school=school)
+            # grade = Grade.objects.get(id=grade_id, school=school)
+            # section = Section.objects.get(id=section_id, school=school)
 
             # ✅ Create TeacherProfile & link Grade, Section, Subject
             profile = TeacherProfile.objects.create(
                 user=teacher_user,
                 school=school,
-                grade=grade,
-                section=section,
+                # grade=grade,
+                # section=section,
                 subjects=subjects
             )
 
@@ -732,12 +737,15 @@ def create_teacher(request):
             return redirect('teachers')
 
     # GET: Render form with Grade & Section dropdown
-    grades = Grade.objects.filter(school=request.user.school)
-    sections = Section.objects.filter(school=request.user.school)
-    return render(request, 'teachers/create_teacher.html', {
-        'grades': grades,
-        'sections': sections
-    })
+    # grades = Grade.objects.filter(school=request.user.school)
+    # sections = Section.objects.filter(school=request.user.school)
+
+    # context = {
+    #     'grades': grades,
+    #     'sections': sections
+    # }
+
+    return render(request, 'teachers/create_teacher.html')
 
 
 from django.http import JsonResponse
@@ -1337,4 +1345,25 @@ def load_routine(request):
         }
 
     return JsonResponse({'routine': routine_data})
+
+from django.utils import timezone
+def teacher_routine_view(request):
+    if request.user.is_teacher:
+        teacher_profile = get_object_or_404(TeacherProfile, user=request.user)
+
+        # Get today's weekday name (e.g., "Monday")
+        today = datetime.today().strftime('%A')
+
+        routines = Routine.objects.filter(
+            teacher=teacher_profile,
+            day=today
+        ).order_by('period_number')
+
+        return render(request, 'dashboard/teachers/teacher_routine.html', {
+            'routines': routines,
+            'today': today,
+        })
+    else:
+        return render(request, 'not_authorized.html')
+
 

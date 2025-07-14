@@ -235,9 +235,9 @@
                     <tr>
                         <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                         <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                        {% comment %} <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                         <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
-                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Section</th> {% endcomment %}
                         <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
@@ -258,7 +258,7 @@
                         </td>
                         
                         <!-- Subject Column -->
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {% comment %} <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                             <span class="view-mode">{{ teacher.subjects }}</span>
                             <select class="edit-mode hidden subject-input w-full px-2 py-1 text-sm border rounded">
                                 <option value="">Select subject</option>
@@ -266,10 +266,10 @@
                                     <option value="{{ subject }}" {% if teacher.subjects == subject %}selected{% endif %}>{{ subject }}</option>
                                 {% endfor %} 
                             </select>
-                        </td>
+                        </td> {% endcomment %}
                         
                         <!-- Grade Column -->
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {% comment %} <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                             <span class="view-mode">{{ teacher.grade.grade_number|default:"-" }}</span>
                             <select class="edit-mode hidden grade-input w-full px-2 py-1 text-sm border rounded">
                                 <option value="">Select grade</option>
@@ -277,10 +277,10 @@
                                 <option value="{{ grade.id }}" {% if teacher.grade.id == grade.id %}selected{% endif %}>{{ grade.grade_number }}</option>
                                 {% endfor %}
                             </select>
-                        </td>
+                        </td> {% endcomment %}
                         
                         <!-- Section Column -->
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {% comment %} <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                             <span class="view-mode">{{ teacher.section.name|default:"-" }}</span>
                             <select class="edit-mode hidden section-input w-full px-2 py-1 text-sm border rounded">
                                 <option value="">Select section</option>
@@ -292,7 +292,7 @@
                                 </option>
                                 {% endfor %}
                             </select>
-                        </td>
+                        </td> {% endcomment %}
                         
                         <!-- Actions Column -->
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
