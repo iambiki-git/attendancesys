@@ -228,6 +228,15 @@
     {% endfor %}
     </select>
   </label>
+  <label>Class Teacher:
+  <select id="classTeacherInput">
+    <option value="">-- Optional --</option>
+    {% for teacher in teachers %}
+      <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+    {% endfor %}
+  </select>
+</label>
+
   <button onclick="saveCell()">✅ Save</button>
   <button onclick="closePopup()">❌ Cancel</button>
 </div>
@@ -400,6 +409,20 @@ function renderTable() {
   table.appendChild(tbody);
   wrapper.appendChild(table);
   tableContainer.appendChild(wrapper);
+
+  fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.teacher_name) {
+      const ctPara = document.createElement('p');
+      ctPara.textContent = `👩‍🏫 Class Teacher: ${data.teacher_name}`;
+      ctPara.style.color = '#16a085';
+      ctPara.style.fontWeight = 'bold';
+      ctPara.style.margin = '0';
+      headerDiv.appendChild(ctPara);
+    }
+  });
+
 }
 
 function resetCell(event, day, periodStart, span, key) {
@@ -518,6 +541,12 @@ function saveCell() {
   const subjectSelect = document.getElementById('subjectInput');
   const teacherSelect = document.getElementById('teacherInput');
 
+  const classTeacherSelect = document.getElementById('classTeacherInput');
+  const classTeacherId = classTeacherSelect.value;
+
+
+
+
   const subjectId = subjectSelect.value;
   const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
 
@@ -528,6 +557,8 @@ function saveCell() {
   const day = cell.dataset.day;
   const periodStart = parseInt(cell.dataset.period);
   const key = cell.dataset.key;
+  const [grade, section] = key.split("-");
+
 
   for (let i = 0; i < colspan; i++) {
     if (checkTeacherConflict(teacherId, day, periodStart + i, key)) {
@@ -565,9 +596,45 @@ function saveCell() {
       }
     });
   }
+  if (classTeacherId) {
+  assignClassTeacher(grade, section, classTeacherId, false); // silently assign
+}
 
   closePopup();
   renderTable();
+}
+
+
+function assignClassTeacher(grade, section, teacherId, showAlert = true) {
+  const csrfToken = getCSRFToken();
+  if (!grade || !section || !teacherId) return;
+
+  fetch('/assign_class_teacher/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify({
+      grade: grade,
+      section: section,
+      teacher_id: teacherId
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success && showAlert) {
+      alert("✅ Class teacher assigned successfully!");
+    } else if (!data.success && showAlert) {
+      alert("❌ Failed to assign class teacher: " + (data.error || ""));
+    }
+  })
+  .catch(err => {
+    if (showAlert) {
+      console.error("❌ Error:", err);
+      alert("❌ Something went wrong. Check console.");
+    }
+  });
 }
 
 

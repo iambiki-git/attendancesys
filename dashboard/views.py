@@ -1367,3 +1367,37 @@ def teacher_routine_view(request):
         return render(request, 'not_authorized.html')
 
 
+
+
+
+@csrf_exempt
+def assign_class_teacher(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            grade_id = data.get("grade")
+            section_id = data.get("section")
+            teacher_id = data.get("teacher_id")
+
+            # Clear previous class teacher for this section
+            TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
+
+            # Assign new class teacher
+            teacher = TeacherProfile.objects.get(id=teacher_id)
+            teacher.grade_id = grade_id
+            teacher.section_id = section_id
+            teacher.save()
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+def get_class_teacher(request):
+    grade_id = request.GET.get("grade")
+    section_id = request.GET.get("section")
+
+    try:
+        teacher = TeacherProfile.objects.get(grade_id=grade_id, section_id=section_id)
+        return JsonResponse({'teacher_name': teacher.user.get_full_name()})
+    except TeacherProfile.DoesNotExist:
+        return JsonResponse({})
