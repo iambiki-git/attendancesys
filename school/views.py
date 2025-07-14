@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions
-from .models import Student, Attendance, Grade, Section, TeacherProfile
-from .serializers import StudentSerializer, AttendanceSerializer, GradeSerializer, SectionSerializer, TeacherProfileSerializer
+from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
+from .serializers import StudentSerializer, AttendanceSerializer, GradeSerializer, SectionSerializer, TeacherProfileSerializer, SubjectSerializer
 
 class IsAuthenticatedSchoolUser(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -54,4 +54,18 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+ # your custom permission
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    serializer_class = SubjectSerializer
+    permission_classes = [IsAuthenticatedSchoolUser]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Subjects.objects.filter(school=user.school)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(school=user.school)
 

@@ -4,16 +4,22 @@
   <div class="mb-8">
     <div class="flex flex-col md:flex-row md:items-end md:justify-end">
       <div class="mt-3 md:mt-0 text-right">
-        <div class="text-gray-500 text-sm">{{ current_date|date:"l" }}</div>
-        <div class="text-gray-800 font-medium">{{ current_date|date:"F j, Y" }}</div>
+        <!-- Nepali Date -->
+        <div class="text-gray-500 text-sm">
+          {{ nepali_weekday }}
+        </div>
+        <div class="text-gray-800 font-medium">
+          {{ nepali_date_str }}
+        </div>
       </div>
+
     </div>
   </div>
 
   <!-- Stats Cards - Minimalist Design -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     <!-- Total Students -->
-    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-shadow">
+    <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between">
         <div>
           <div class="text-gray-500 text-sm font-medium mb-1">Total Students</div>
@@ -29,10 +35,14 @@
         <span class="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1"></span>
         All active classes
       </div>
+       <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+          <span>{{ overall_attendance_percent }}% attendance</span>
+          {% comment %} <span>{{ present_count }}/{{ students_count }}</span> {% endcomment %}
+        </div>
     </div>
 
     <!-- Present Today -->
-    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-shadow">
+    <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between">
         <div>
           <div class="text-gray-500 text-sm font-medium mb-1">Present</div>
@@ -46,7 +56,7 @@
       </div>
       <div class="mt-3">
         <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-          <span>{{ present_percentage }}% attendance</span>
+          <span>{{ present_percent }}% present</span>
           <span>{{ present_count }}/{{ students_count }}</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-1.5">
@@ -56,7 +66,7 @@
     </div>
 
     <!-- Absent Today -->
-    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-shadow">
+    <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between">
         <div>
           <div class="text-gray-500 text-sm font-medium mb-1">Absent</div>
@@ -70,7 +80,7 @@
       </div>
       <div class="mt-3">
         <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-          <span>{{ absent_percentage }}% absent</span>
+          <span>{{ absent_percent }}% absent</span>
           <span>{{ absent_count }}/{{ students_count }}</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-1.5">
@@ -80,7 +90,7 @@
     </div>
 
     <!-- Late Today -->
-    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-shadow">
+    <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between">
         <div>
           <div class="text-gray-500 text-sm font-medium mb-1">Late Arrivals</div>
@@ -94,7 +104,7 @@
       </div>
       <div class="mt-3">
         <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-          <span>{{ late_percentage }}% late</span>
+          <span>{{ late_percent }}% late</span>
           <span>{{ late_count }}/{{ students_count }}</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-1.5">

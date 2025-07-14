@@ -1,0 +1,88 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}School Dashboard{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-25 to-indigo-25 p-4"> 
+  <!-- Simple Stats -->
+  <div class="px-4 py-8 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Student Card - Modern Glass Effect -->
+        <div class="bg-white/90 backdrop-blur-sm p-6 rounded-xl border border-gray-200/60 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-purple-500 uppercase tracking-wider mb-1">Students</p>
+              <p class="text-3xl font-bold text-gray-800">{{ total_students }}</p>
+            </div>
+            <div class="p-2 rounded-lg bg-blue-50/70">
+              <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 flex items-center gap-2">
+            <div class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center">
+              <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/>
+              </svg>
+              +5.2%
+            </div>
+            <span class="text-xs text-gray-500">vs last term</span>
+          </div>
+        </div>
+
+        <!-- Teacher Card - Modern with Progress Bar -->
+        <div class="bg-white/90 backdrop-blur-sm p-6 rounded-xl border border-gray-200/60 hover:border-gray-300 transition-all duration-300 shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-pink-500 uppercase tracking-wider mb-1">Teachers</p>
+              <p class="text-3xl font-bold text-gray-800">{{ total_teachers }}</p>
+            </div>
+            <div class="p-2 rounded-lg bg-green-50/70">
+              <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Attendance Rate</span>
+              <span class="font-medium text-green-600">94%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-1.5">
+              <div class="bg-gradient-to-r from-green-400 to-green-500 h-1.5 rounded-full" style="width: 94%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grades Card - Modern Interactive -->
+        <a href="{% url 'grades' %}" class="group bg-white/90 backdrop-blur-sm p-6 rounded-xl border border-gray-200/60 hover:border-indigo-300 transition-all duration-300 shadow-sm hover:shadow-md">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-1">Grade Levels</p>
+              <p class="text-3xl font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">{{ total_grades }}</p>
+            </div>
+            <div class="p-2 rounded-lg bg-indigo-50/70 group-hover:bg-indigo-100/70 transition-colors">
+              <svg class="w-5 h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-4 flex items-center">
+            <span class="text-xs text-gray-500 group-hover:text-indigo-500 transition-colors flex items-center">
+              View all grades
+              <svg class="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+    </div>
+  </div>
+
+  
+</div>
+
+
+
+<script>
+</script>
+{% endblock %}

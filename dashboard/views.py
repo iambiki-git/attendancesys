@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
-from school.models import Student, Attendance, Grade, Section, TeacherProfile
+from school.models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
 from users.models import School
 from django.contrib import messages
 import requests
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, update_session_auth_hash
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
@@ -116,10 +116,12 @@ def school_dashboard(request):
     
     school = request.user.school
     students = Student.objects.filter(school=school)
+    teachers = TeacherProfile.objects.filter(school=school)
     grades = Grade.objects.filter(school=school)
     today = datetime.today()
 
     total_students = students.count()
+    total_teachers = teachers.count()
     total_grades = grades.count
     today_attendance = Attendance.objects.filter(student__school=school, date=today)
 
@@ -129,6 +131,7 @@ def school_dashboard(request):
     context = {
         'school': school,
         'total_students': total_students,
+        'total_teachers': total_teachers,
         # 'present_count': present_count,
         # 'absent_count': absent_count,
         'total_grades': total_grades,
@@ -136,59 +139,42 @@ def school_dashboard(request):
 
     }
 
-    return render(request, 'dashboard/school_admin_dashboard.html', context)
+    return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
 
-import json
-from django.core.serializers.json import DjangoJSONEncoder
-# def students_view(request):
-#     school = request.user.school
-#     grades = Grade.objects.filter(school=school)
-#     sections = Section.objects.filter(school=school)
-#     students = Student.objects.filter(school=school).order_by('name')
+def settings_view(request):
+    return render(request, 'dashboard/school_dashboard/settings.html')
 
-#     sections_by_grade = {}
-#     for grade in grades:
-#         sections_list = sections.filter(grade=grade).values_list('name', flat=True)
-#         sections_by_grade[grade.grade_number] = list(sections_list)
+def update_password(request):
+    if request.method == "POST":
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
 
-#     context = {
-#         'students': students,
-#         'grades': grades,
-#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
-#     }
-#     return render(request, 'dashboard/student_page.html', context)
+        user = request.user
 
+        # Check if current password is correct
+        if not user.check_password(current_password):
+            messages.error(request, "Your current password is incorrect.")
+            return redirect('settings') 
+        
+        # Check if new password and confirm match
+        if new_password != confirm_password:
+            messages.error(request, "New password and confirm password do not match.")
+            return redirect('settings')
+        
+        # Set new password
+        user.set_password(new_password)
+        user.save()
 
-# def students_view(request):
-#     school = request.user.school
-#     grades = Grade.objects.filter(school=school).order_by('grade_number')
-#     sections = Section.objects.filter(school=school).order_by('name')
+        # Keep user logged in after password change
+        update_session_auth_hash(request, user)
 
-#     # Sections grouped by Grade
-#     sections_by_grade = {}
-#     for grade in grades:
-#         sections_list = sections.filter(grade=grade).values_list('id', 'name')
-#         sections_by_grade[grade.id] = list(sections_list)
+        messages.success(request, "Your password has been updated successfully.")
+        return redirect('settings')
+    else:
+        return redirect('settings')
+    
 
-#     grade_id = request.GET.get('grade_id')
-#     section_id = request.GET.get('section_id')
-
-#     students = Student.objects.filter(school=school)
-#     if grade_id:
-#         students = students.filter(grade_id=grade_id)
-#     if section_id:
-#         students = students.filter(section_id=section_id)
-#     students = students.order_by('name')
-
-#     return render(request, 'dashboard/student_page.html', {
-#         'grades': grades,
-#         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
-#         'students': students,
-#         'selected_grade': grade_id,
-#         'selected_section': section_id,
-#     })
-
-from django.http import JsonResponse
 from django.core.serializers.json import DjangoJSONEncoder
 import json
 
@@ -225,6 +211,11 @@ def students_view(request):
         students = students.filter(section_id=section_id)
     students = students.order_by('name')
 
+    # Pagination
+    # paginator = Paginator(students, 3)  # Show 10 students per page
+    # page_number = request.GET.get('page')
+    # page_obj = paginator.get_page(page_number)
+
     context = {
         'grades': grades,
         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
@@ -239,7 +230,7 @@ def students_view(request):
         # Handle AJAX requests differently if needed
         return JsonResponse(context)
     
-    return render(request, 'dashboard/student_page.html', context)
+    return render(request, 'dashboard/school_dashboard/student_page.html', context)
 
 
 # def create_student(request):
@@ -420,7 +411,7 @@ def grades_view(request):
     context = {
         'page_obj':page_obj,
     }
-    return render(request, 'dashboard/grades.html', context)
+    return render(request, 'dashboard/school_dashboard/grades.html', context)
 
 
 
@@ -647,8 +638,9 @@ def teachers_view(request):
     school = request.user.school
     grades = Grade.objects.filter(school=school).order_by('grade_number')
     sections = Section.objects.filter(school=school).order_by('name')
+    subjects = Subjects.objects.filter(school=school).order_by('id')
 
-    teachers = TeacherProfile.objects.filter(school=school)
+    all_teachers = TeacherProfile.objects.filter(school=school).order_by('user__first_name')
     #print(teachers)
 
     # Prepare sections data grouped by grade
@@ -659,13 +651,20 @@ def teachers_view(request):
             for section in sections.filter(grade=grade)
         ]
 
+    # Pagination
+    paginator = Paginator(all_teachers, 6)  # Show 10 teachers per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
         'grades': grades,
         'sections': sections,  # All sections for initial load
         'sections_by_grade': json.dumps(sections_by_grade),
-        'teachers': teachers
+        'teachers': page_obj,
+        'subjects': subjects,
+        'all_teachers': all_teachers,
     }
-    return render(request, 'dashboard/teachers_page.html', context)
+    return render(request, 'dashboard/school_dashboard/teachers_page.html', context)
 
 
 from django.contrib.auth import get_user_model
@@ -677,22 +676,27 @@ def create_teacher(request):
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        school=request.user.school
 
-        grade_id = request.POST.get('grade_level')
-        section_id = request.POST.get('section')
-        subjects = request.POST.get('subject')
+        # grade_id = request.POST.get('grade_level')
+        # section_id = request.POST.get('section')
+        # subjects = request.POST.get('subject')
 
         # Validate required fields
-        if not all([username, email, password, grade_id, section_id]):
+        if not all([username, email, password, first_name, last_name]):
             messages.error(request, "All required fields must be filled.")
             return redirect('teachers')
+        
+        # if not all([username, email, password, grade_id, section_id]):
+        #     messages.error(request, "All required fields must be filled.")
+        #     return redirect('teachers')
 
         # Check for duplicates
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(username=username, school=school).exists():
             messages.warning(request, "Username already taken.")
             return redirect('teachers')
 
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email=email, school=school).exists():
             messages.warning(request, "Email already registered.")
             return redirect('teachers')
 
@@ -711,15 +715,15 @@ def create_teacher(request):
             )
 
             # ✅ Get Grade and Section
-            grade = Grade.objects.get(id=grade_id, school=school)
-            section = Section.objects.get(id=section_id, school=school)
+            # grade = Grade.objects.get(id=grade_id, school=school)
+            # section = Section.objects.get(id=section_id, school=school)
 
             # ✅ Create TeacherProfile & link Grade, Section, Subject
             profile = TeacherProfile.objects.create(
                 user=teacher_user,
                 school=school,
-                grade=grade,
-                section=section,
+                # grade=grade,
+                # section=section,
                 subjects=subjects
             )
 
@@ -733,12 +737,15 @@ def create_teacher(request):
             return redirect('teachers')
 
     # GET: Render form with Grade & Section dropdown
-    grades = Grade.objects.filter(school=request.user.school)
-    sections = Section.objects.filter(school=request.user.school)
-    return render(request, 'teachers/create_teacher.html', {
-        'grades': grades,
-        'sections': sections
-    })
+    # grades = Grade.objects.filter(school=request.user.school)
+    # sections = Section.objects.filter(school=request.user.school)
+
+    # context = {
+    #     'grades': grades,
+    #     'sections': sections
+    # }
+
+    return render(request, 'teachers/create_teacher.html')
 
 
 from django.http import JsonResponse
@@ -794,11 +801,30 @@ def update_teacher(request, teacher_id):
 
 
 from django.utils import timezone
+import nepali_datetime
 def teacher_dashboard(request):
     teacher = request.user.teacherprofile
     grade = teacher.grade
     section = teacher.section
-    today = timezone.now().date()
+    today_ad = timezone.now().date()
+    today_bs = nepali_datetime.date.from_datetime_date(today_ad)
+    first_day_of_month = today_ad.replace(day=1)
+
+
+    nepali_weekday = today_bs.strftime("%A")
+    nepali_date_str = today_bs.strftime("%B %d, %Y")
+
+    # Step 1: Filter records for the month
+    monthly_attendance = Attendance.objects.filter(
+        student__grade=grade,
+        student__section=section,
+        student__school=teacher.school,
+        date__range=(first_day_of_month, today_ad)
+    )
+
+    # Step 2: Total unique attendance days
+    unique_dates = monthly_attendance.values_list('date', flat=True).distinct()
+    school_days = unique_dates.count()
 
     # total students
     students = Student.objects.filter(
@@ -808,46 +834,65 @@ def teacher_dashboard(request):
     )
     students_count = students.count()
 
+    # Step 4: Total expected attendance records
+    total_possible_attendance = school_days * students_count
+
+    # Step 5: Actual Present + Late records
+    total_present = monthly_attendance.filter(status__in=['Present', 'Late']).count()
+
+    # Step 6: Calculate percentage
+    overall_attendance_percent = round((total_present / total_possible_attendance) * 100, 2) if total_possible_attendance > 0 else 0
+
     # Present = Present + Late
     present_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status__in=['Present', 'Late']
     ).count()
 
-    # ✅ Absent
+    # Absent
     absent_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status='Absent'
     ).count()
 
-    # ✅ Late 
+    # Late 
     late_count = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
         student__school=teacher.school,
-        date=today,
+        date=today_ad,
         status='Late'
     ).count()
 
     # Attendance percentage late lai ni present manne
-    attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
+    #attendance_percentage = round((present_count / students_count) * 100 if students_count > 0 else 0)
+    # Calculate percentages
+    present_percent = round((present_count / students_count) * 100, 2) if students_count > 0 else 0
+    late_percent = round((late_count / students_count) * 100, 2) if students_count > 0 else 0
+    absent_percent = round((absent_count / students_count) * 100, 2) if students_count > 0 else 0
 
     context = {
         'students_count': students_count,
         'present_count': present_count,
         'absent_count': absent_count,
         'late_count': late_count,
-        'attendance_percentage': attendance_percentage,
+        'overall_attendance_percent': overall_attendance_percent,
+        'present_percent': present_percent,
+        'late_percent': late_percent,
+        'absent_percent': absent_percent,
         'teacher': teacher,
         'grade': grade,
         'section': section,
-        'current_date': today
+        'current_date_ad': today_ad,
+        'current_date_bs': today_bs,
+        'nepali_weekday': nepali_weekday,
+        'nepali_date_str': nepali_date_str,
     }
     return render(request, 'dashboard/teachers/teacher_dashboard.html', context)
 
@@ -991,3 +1036,334 @@ def delete_teacher(request, id):
     messages.success(request, 'Teacher deleted successfully.')
     return redirect('teachers')
     
+
+def subjects(request):
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+    school = request.user.school
+
+    grades = Grade.objects.filter(school=school)
+    sections = Section.objects.filter(grade_id=grade_id) if grade_id else Section.objects.none()
+
+    subjects = Subjects.objects.filter(grade_id=grade_id) if grade_id else []
+
+    context = {
+        'grades': grades,
+        'sections': sections,
+        'subjects': subjects,
+        'selected_grade': Grade.objects.filter(id=grade_id).first() if grade_id else None,
+        'selected_section': Section.objects.filter(id=section_id).first() if section_id else None,
+    }
+    return render(request, 'dashboard/school_dashboard/subjects.html', context)
+
+# def subjects(request):
+#     subjects = Subjects.objects.filter(school=request.user.school)
+
+#     context = {
+#         'subjects': subjects,
+#     }
+#     return render(request, 'dashboard/school_dashboard/subjects.html', context)
+
+
+def add_subject(request):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')  # adjust this to your subjects list URL name
+
+    subject_name = request.POST.get('name')
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
+    school = request.user.school
+    if not subject_name:
+        messages.error(request, 'Subject name cannot be empty.')
+        return redirect('subjects')
+    
+    if Subjects.objects.filter(name=subject_name, school=school).exists():
+        messages.error(request, 'This subject is already exists.')
+        return redirect('subjects')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    api_url = f"{settings.API_BASE_URL}subjects/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        'name': subject_name,
+        'grade': grade_id,
+        'school': school.id
+    }
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers)
+
+        if response.status_code == 201:
+            messages.success(request, f'Subject "{subject_name}" added successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
+
+
+
+def delete_subject(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')  # adjust to your subjects list URL name
+
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
+
+    # Example: get access token (replace with your logic)
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    # Build API URL for the DRF endpoint
+    api_url = f"{settings.API_BASE_URL}subjects/{pk}/"
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        response = requests.delete(api_url, headers=headers)
+
+        if response.status_code == 204:
+            messages.success(request, 'Subject deleted successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
+
+
+def edit_subject(request, pk):
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('subjects')
+
+    new_name = request.POST.get('name')
+    grade_id = request.POST.get('grade_id')  # 👈 get grade
+
+    if not new_name:
+        messages.error(request, 'Subject name cannot be empty.')
+        return redirect('subjects')
+
+    access_token = get_valid_access_token(request)
+    if not access_token:
+        messages.error(request, 'Session expired. Please log in again.')
+        return redirect('login')
+
+    api_url = f"{settings.API_BASE_URL}subjects/{pk}/"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    payload = {'name': new_name}
+
+    try:
+        response = requests.patch(api_url, json=payload, headers=headers)
+
+        if response.status_code == 200:
+            messages.success(request, f'Subject updated successfully.')
+        else:
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
+            messages.error(request, f"API Error: {detail}")
+
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f"Failed to connect to API: {str(e)}")
+
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
+
+
+def overall_attendance(request):
+    return render(request, 'dashboard/school_dashboard/overall_attendance.html')
+
+
+import csv
+def upload_students_csv(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        grade_id = request.POST.get('grade_id')
+        section_id = request.POST.get('section_id')
+
+        # Validate grade and section
+        try:
+            grade = Grade.objects.get(id=grade_id)
+            section = Section.objects.get(id=section_id)
+        except (Grade.DoesNotExist, Section.DoesNotExist):
+            messages.error(request, "Invalid Grade or Section.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        # Read and parse the CSV file
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.reader(decoded_file)
+
+        created_count = 0
+        for row in reader:
+            if len(row) < 2:
+                continue  # Skip malformed rows
+
+            name, roll_no = row[0].strip(), row[1].strip()
+            if name and roll_no:
+                Student.objects.create(
+                    name=name,
+                    roll_number=roll_no,
+                    grade=grade,
+                    section=section
+                )
+                created_count += 1
+
+        messages.success(request, f"{created_count} students imported successfully.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    messages.error(request, "No CSV file uploaded.")
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+def routine_setup(request):
+    school = request.user.school
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
+    sections = Section.objects.filter(school=school).order_by('name')
+    subjects = Subjects.objects.filter(school=school)
+    teachers = TeacherProfile.objects.filter(school=school)
+
+    sections_by_grade = {}
+    for grade in grades:
+        sections_list = list(sections.filter(grade=grade).values('id', 'name'))
+        sections_by_grade[grade.id] = sections_list
+
+    context = {
+        'grades': grades,
+        'sections_by_grade': sections_by_grade,
+        'subjects': subjects,
+        'teachers': teachers,
+    }
+    return render(request, 'dashboard/school_dashboard/routine_setupp.html', context)
+
+
+# views.py
+import traceback
+from django.views.decorators.csrf import csrf_exempt
+from school.models import Routine
+@csrf_exempt
+@login_required
+def save_routine(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            routines = data.get('routines', {})
+            period_names = data.get('period_names', {})
+            school = request.user.school  # assumes user has a related school
+
+            for key, days in routines.items():
+                grade_id, section_id = key.split("-")
+                grade = Grade.objects.get(id=grade_id)
+                section = Section.objects.get(id=section_id)
+
+                for day, periods in days.items():
+                    for period_number_str, entry in periods.items():
+                        try:
+                            subject = Subjects.objects.get(id=int(entry['subject_id']))
+                            teacher = TeacherProfile.objects.get(id=int(entry['teacher_id']))
+                            period_number = int(period_number_str)
+
+                            Routine.objects.update_or_create(
+                                day=day,
+                                period_number=period_number,
+                                grade=grade,
+                                section=section,
+                                defaults={
+                                    'subject': subject,
+                                    'teacher': teacher,
+                                    'school': school
+                                }
+                            )
+                        except Exception as sub_e:
+                            traceback.print_exc()
+                            return JsonResponse({
+                                'success': False,
+                                'error': f'Error on {day} period {period_number_str}: {str(sub_e)}'
+                            }, status=400)
+
+            return JsonResponse({'success': True})
+
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required
+def load_routine(request):
+    grade_id = request.GET.get('grade')
+    section_id = request.GET.get('section')
+
+    if not grade_id or not section_id:
+        return JsonResponse({'error': 'Missing grade or section'}, status=400)
+
+    routines = Routine.objects.filter(grade_id=grade_id, section_id=section_id)
+
+    routine_data = {}
+    for entry in routines:
+        key = f"{entry.grade.id}-{entry.section.id}"
+        day = entry.day
+        period = entry.period_number
+
+        if key not in routine_data:
+            routine_data[key] = {}
+        if day not in routine_data[key]:
+            routine_data[key][day] = {}
+
+        routine_data[key][day][period] = {
+            "subject_id": entry.subject.id,
+            "subject": entry.subject.name,
+            "teacher_id": entry.teacher.id,
+            "teacher": entry.teacher.user.get_full_name(),
+        }
+
+    return JsonResponse({'routine': routine_data})
+
+from django.utils import timezone
+def teacher_routine_view(request):
+    if request.user.is_teacher:
+        teacher_profile = get_object_or_404(TeacherProfile, user=request.user)
+
+        # Get today's weekday name (e.g., "Monday")
+        today = datetime.today().strftime('%A')
+
+        routines = Routine.objects.filter(
+            teacher=teacher_profile,
+            day=today
+        ).order_by('period_number')
+
+        return render(request, 'dashboard/teachers/teacher_routine.html', {
+            'routines': routines,
+            'today': today,
+        })
+    else:
+        return render(request, 'not_authorized.html')
+
+
