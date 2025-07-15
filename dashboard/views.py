@@ -1293,6 +1293,68 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+# @csrf_exempt
+# def save_routine(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             routines = data.get('routines', {})
+#             period_names = data.get('period_names', {})
+
+#             school = request.user.school  # assuming you're using request.user
+
+#             for key, daily_routine in routines.items():
+#                 grade_id, section_id = map(int, key.split('-'))
+#                 grade = Grade.objects.get(id=grade_id)
+#                 section = Section.objects.get(id=section_id)
+
+#                 for day, periods in daily_routine.items():
+#                     for period_str, entry in periods.items():
+#                         period_number = int(period_str)
+#                         subject_id = entry.get('subject_id')
+#                         teacher_id = entry.get('teacher_id')
+
+#                         if not subject_id or not teacher_id:
+#                             continue
+
+#                         subject = Subjects.objects.get(id=subject_id)
+#                         teacher = TeacherProfile.objects.get(id=teacher_id)
+
+#                         # ❌ Check for conflict in other sections
+#                         conflict = Routine.objects.filter(
+#                             day=day,
+#                             period_number=period_number,
+#                             teacher=teacher,
+#                             school=school
+#                         ).exclude(grade=grade, section=section).exists()
+
+#                         if conflict:
+#                             return JsonResponse({
+#                                 'success': False,
+#                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
+#                             })
+
+#                         # ✅ Save or update
+#                         Routine.objects.update_or_create(
+#                             day=day,
+#                             period_number=period_number,
+#                             grade=grade,
+#                             section=section,
+#                             school=school,
+#                             defaults={
+#                                 'subject': subject,
+#                                 'teacher': teacher
+#                             }
+#                         )
+
+
+#             return JsonResponse({'success': True})
+        
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+#     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
 @csrf_exempt
 def save_routine(request):
     if request.method == 'POST':
@@ -1307,6 +1369,8 @@ def save_routine(request):
                 grade_id, section_id = map(int, key.split('-'))
                 grade = Grade.objects.get(id=grade_id)
                 section = Section.objects.get(id=section_id)
+
+                class_teacher_set = False  # Track if class teacher is already set
 
                 for day, periods in daily_routine.items():
                     for period_str, entry in periods.items():
@@ -1334,7 +1398,7 @@ def save_routine(request):
                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
                             })
 
-                        # ✅ Save or update
+                        # ✅ Save or update routine
                         Routine.objects.update_or_create(
                             day=day,
                             period_number=period_number,
@@ -1347,6 +1411,12 @@ def save_routine(request):
                             }
                         )
 
+                        # ✅ Set Class Teacher if Sunday Period 1
+                        if day == "Sunday" and period_number == 1 and not class_teacher_set:
+                            teacher.grade = grade
+                            teacher.section = section
+                            teacher.save()
+                            class_teacher_set = True
 
             return JsonResponse({'success': True})
         
@@ -1389,6 +1459,25 @@ def load_routine(request):
 
 
 
+@login_required
+def get_busy_teachers(request):
+    day = request.GET.get('day')
+    period = request.GET.get('period')
+
+    if not day or not period:
+        return JsonResponse({'error': 'Missing day or period'}, status=400)
+
+    school = request.user.school
+    busy_teachers = Routine.objects.filter(
+        day=day,
+        period_number=period,
+        school=school
+    ).values_list('teacher_id', flat=True)
+
+    return JsonResponse({'busy_teacher_ids': list(busy_teachers)})
+
+
+
 
 from django.utils import timezone
 def teacher_routine_view(request):
@@ -1414,27 +1503,27 @@ def teacher_routine_view(request):
 
 
 
-@csrf_exempt
-def assign_class_teacher(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            grade_id = data.get("grade")
-            section_id = data.get("section")
-            teacher_id = data.get("teacher_id")
+# @csrf_exempt
+# def assign_class_teacher(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             grade_id = data.get("grade")
+#             section_id = data.get("section")
+#             teacher_id = data.get("teacher_id")
 
-            # Clear previous class teacher for this section
-            TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
+#             # Clear previous class teacher for this section
+#             TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
 
-            # Assign new class teacher
-            teacher = TeacherProfile.objects.get(id=teacher_id)
-            teacher.grade_id = grade_id
-            teacher.section_id = section_id
-            teacher.save()
+#             # Assign new class teacher
+#             teacher = TeacherProfile.objects.get(id=teacher_id)
+#             teacher.grade_id = grade_id
+#             teacher.section_id = section_id
+#             teacher.save()
 
-            return JsonResponse({'success': True})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+#             return JsonResponse({'success': True})
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
 
 
 def get_class_teacher(request):

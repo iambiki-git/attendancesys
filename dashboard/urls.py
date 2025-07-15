@@ -21,6 +21,8 @@ urlpatterns = [
     path('routine/setup/', routine_setup, name='routine_setup'),
     path('save_routine/', save_routine, name='save_routine'),
     path('load_routine/', load_routine, name='load_routine'),
+    path('get_busy_teachers/', get_busy_teachers, name='get_busy_teachers'),
+
 
 
 
@@ -50,7 +52,7 @@ urlpatterns = [
     path('student/status/', student_status, name='student_status'),
     path('routine/', teacher_routine_view, name='teacher_routine'),
 
-    path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
+    #path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
     path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
 
 ]
