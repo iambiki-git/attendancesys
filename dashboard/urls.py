@@ -30,6 +30,7 @@ urlpatterns = [
     path('attendance/', overall_attendance, name='overall_attendance'),
 
     path('students/upload/', upload_students_csv, name='upload_students_csv'),
+    path('get_teacher_assignments/',get_teacher_assignments, name='get_teacher_assignments'),
 
 
     path('create/students/', create_student, name='create_student'),

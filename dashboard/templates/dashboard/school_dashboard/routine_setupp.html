@@ -242,6 +242,8 @@
 </div>
 
 <script>
+  let activeKey = null;  // Tracks currently active routine
+
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const tableContainer = document.getElementById('tableContainer');
 let selectedCell = null;
@@ -311,6 +313,8 @@ function renderTable() {
       periodNames[key][i] = `Period ${i + 1}`;
     }
   }
+
+
 
   const currentData = routineData[key];
   const existing = document.getElementById(`routine-${key}`);
@@ -393,7 +397,11 @@ function renderTable() {
       td.innerHTML = (entry && entry.subject && entry.teacher)
         ? `<div style="position:relative;"><div style="position:absolute;top:4px;right:6px;font-weight:bold;color:#e74c3c;cursor:pointer;" onclick='resetCell(event, "${day}", ${p}, ${span}, "${key}")'>×</div><div>${entry.subject}</div><div style="font-size: 0.9em; color: #555;">(${entry.teacher})</div></div>`
         : '';
-      td.onclick = () => openPopup(td, span, currentData);
+        
+      td.addEventListener('click', () => {
+        activeKey = key;
+        openPopup(td, span, currentData);
+      });
       td.dataset.day = day;
       td.dataset.period = p;
       td.dataset.key = key;
@@ -427,13 +435,38 @@ function renderTable() {
 
 function resetCell(event, day, periodStart, span, key) {
   event.stopPropagation();
+
+  // Sync dropdowns to match key
+  const [grade, section] = key.split("-");
+  const gradeSelect = document.getElementById("gradeSelect");
+  const sectionSelect = document.getElementById("sectionSelect");
+
+  gradeSelect.value = grade;
+  sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+  if (sectionsByGrade[grade]) {
+    sectionsByGrade[grade].forEach(s => {
+      const option = document.createElement("option");
+      option.value = s.id;
+      option.textContent = s.name;
+      sectionSelect.appendChild(option);
+    });
+    sectionSelect.value = section;
+  }
+
+  // Delete data
   for (let i = 0; i < span; i++) {
     if (routineData[key] && routineData[key][day]) {
       delete routineData[key][day][periodStart + i];
     }
   }
+
+  // Remove old table and redraw
+  const oldTable = document.getElementById(`routine-${key}`);
+  if (oldTable) oldTable.remove();
+
   renderTable();
 }
+
 
 
 {% comment %} function openPopup(cell, colspan = 1, currentData) {
@@ -449,46 +482,79 @@ function resetCell(event, day, periodStart, span, key) {
 } {% endcomment %}
 
 function openPopup(cell, colspan = 1, currentData) {
-  selectedCell = { cell, colspan, currentData };
-
-  const day = cell.dataset.day;
-  const period = parseInt(cell.dataset.period);
   const key = cell.dataset.key;
+  const [grade, section] = key.split("-");
+  const day = cell.dataset.day;
+  const periodStart = parseInt(cell.dataset.period);
 
-  const teacherSelect = document.getElementById('teacherInput');
-  const allOptions = Array.from(teacherSelect.options);
+  // Sync top form controls
+  const gradeSelect = document.getElementById("gradeSelect");
+  const sectionSelect = document.getElementById("sectionSelect");
+  const periodInput = document.getElementById("periodCount");
 
-  // Reset all first
-  allOptions.forEach(opt => {
-    opt.disabled = false;
-    opt.textContent = opt.textContent.replace(' (busy)', '');
-  });
+  gradeSelect.value = grade;
 
-  // Disable if same teacher is already booked in another section
-  for (const k in routineData) {
-    if (k === key) continue;
-
-    const teacherEntry = routineData[k]?.[day]?.[period];
-    if (teacherEntry?.teacher_id) {
-      const match = allOptions.find(opt => opt.value === teacherEntry.teacher_id);
-      if (match) {
-        match.disabled = true;
-        match.textContent += ' (busy)';
-      }
-    }
+  // Rebuild section dropdown
+  sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+  if (sectionsByGrade[grade]) {
+    sectionsByGrade[grade].forEach(s => {
+      const option = document.createElement("option");
+      option.value = s.id;
+      option.textContent = s.name;
+      sectionSelect.appendChild(option);
+    });
+    sectionSelect.value = section;
   }
 
-  // Pre-fill subject/teacher if editing
-  const content = cell.innerText.trim().split('\n');
-  const subject = content[0] || '';
-  const teacher = content[1] ? content[1].replace(/[()]/g, '') : '';
+  // Set period count to match actual table
+  const wrapper = document.getElementById(`routine-${key}`);
+  const headCols = wrapper.querySelectorAll("thead tr th").length - 1;
+  periodInput.value = headCols;
 
-  document.getElementById('subjectInput').value = subject;
-  teacherSelect.value = teacher;
+  // Store current cell context
+  selectedCell = {
+    cell,
+    colspan,
+    currentData,
+    key,
+    day,
+    periodStart
+  };
 
-  document.getElementById('overlay').style.display = 'block';
-  document.getElementById('popup').style.display = 'block';
+  // Pre-fill popup inputs
+  const subjectInput = document.getElementById("subjectInput");
+  const teacherInput = document.getElementById("teacherInput");
+
+  const content = cell.innerText.trim().split("\n");
+  const subjectText = content[0] || "";
+  const teacherText = content[1]?.replace(/[()]/g, "") || "";
+
+  Array.from(subjectInput.options).forEach(opt => {
+    if (opt.text === subjectText) subjectInput.value = opt.value;
+  });
+
+  Array.from(teacherInput.options).forEach(opt => {
+    opt.disabled = false;
+    opt.textContent = opt.textContent.replace(" (busy)", "");
+
+    // Disable if already booked
+    for (const k in routineData) {
+      if (k === key) continue;
+      const booked = routineData[k]?.[day]?.[periodStart];
+      if (booked?.teacher_id === opt.value) {
+        opt.disabled = true;
+        opt.textContent += " (busy)";
+      }
+    }
+  });
+
+  activeKey = key;  // Make clicked routine the active one
+
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("popup").style.display = "block";
 }
+
+
 
 
 
@@ -538,35 +604,28 @@ function closePopup() {
 } {% endcomment %}
 
 function saveCell() {
-  const subjectSelect = document.getElementById('subjectInput');
-  const teacherSelect = document.getElementById('teacherInput');
-
-  const classTeacherSelect = document.getElementById('classTeacherInput');
-  const classTeacherId = classTeacherSelect.value;
-
-
-
+  const subjectSelect = document.getElementById("subjectInput");
+  const teacherSelect = document.getElementById("teacherInput");
+  const classTeacherSelect = document.getElementById("classTeacherInput");
 
   const subjectId = subjectSelect.value;
   const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
-
   const teacherId = teacherSelect.value;
   const teacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
+  const classTeacherId = classTeacherSelect.value;
 
-  const { cell, colspan, currentData } = selectedCell;
-  const day = cell.dataset.day;
-  const periodStart = parseInt(cell.dataset.period);
-  const key = cell.dataset.key;
+  const { cell, colspan, currentData, key, day, periodStart } = selectedCell;
   const [grade, section] = key.split("-");
 
-
+  // Check conflicts
   for (let i = 0; i < colspan; i++) {
     if (checkTeacherConflict(teacherId, day, periodStart + i, key)) {
-      alert(`❌ Teacher ${teacherName} is already assigned at Period ${periodStart + i} on ${day} in another class.`);
+      alert(`❌ Teacher ${teacherName} is already assigned at Period ${periodStart + i} on ${day}.`);
       return;
     }
   }
 
+  // Write to routineData
   if (!routineData[key]) routineData[key] = {};
   if (!routineData[key][day]) routineData[key][day] = {};
 
@@ -579,6 +638,7 @@ function saveCell() {
     };
   }
 
+  // Auto-replicate if checked
   const replicate = document.getElementById('autoReplicate')?.checked ?? true;
   if (replicate && day === 'Sunday') {
     days.forEach(d => {
@@ -596,13 +656,16 @@ function saveCell() {
       }
     });
   }
+
+  // Optionally assign class teacher
   if (classTeacherId) {
-  assignClassTeacher(grade, section, classTeacherId, false); // silently assign
-}
+    assignClassTeacher(grade, section, classTeacherId, false);
+  }
 
   closePopup();
-  renderTable();
+  renderTable();  // re-render only the one based on dropdown values
 }
+
 
 
 function assignClassTeacher(grade, section, teacherId, showAlert = true) {
