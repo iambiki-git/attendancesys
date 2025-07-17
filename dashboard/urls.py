@@ -52,7 +52,9 @@ urlpatterns = [
     path('student/status/', student_status, name='student_status'),
     path('routine/', teacher_routine_view, name='teacher_routine'),
 
+    
+
     #path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
-    path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
+    #path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
 
 ]
