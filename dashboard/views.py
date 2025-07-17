@@ -1657,8 +1657,6 @@ def teacher_routine_view(request):
 
 
 
-
-
 # @csrf_exempt
 # def assign_class_teacher(request):
 #     if request.method == 'POST':
