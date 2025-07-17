@@ -1,256 +1,168 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
-<div class="routine-dashboard">
-  <!-- Header with date -->
-  <div class="dashboard-header">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header with date and time -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
     <div>
-      <h1>Today's Schedule</h1>
-      <p class="text-light">{{ today|date:"l, F j, Y" }}</p>
+      <h1 class="text-2xl font-bold text-gray-900">Today's Schedule</h1>
+      <div class="flex items-center gap-3 mt-2">
+        <div class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>{{ today|date:"l, F j, Y" }}</span>
+        </div>
+      </div>
     </div>
-    <div class="header-actions">
-      <button class="btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        Export
-      </button>
+    <div class="text-2xl font-mono font-medium bg-gray-100 px-4 py-2 rounded-lg">
+      <span id="live-clock">{{ now|date:"H:i" }}</span>
     </div>
   </div>
 
   <!-- Stats Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <h3>Total Classes</h3>
-      <p>{{ routines|length }}</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-purple-200 hover:shadow-md transition-shadow duration-200">
+      <div class="flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-indigo-50 text-indigo-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Classes</p>
+          <p class="text-2xl font-semibold text-gray-900">{{ routines|length }}</p>
+        </div>
+      </div>
     </div>
-    {% comment %} <div class="stat-card">
-      <h3>Next Class</h3>
-      <p>{% if routines %}Period {{ routines.0.period_number }}{% else %}None{% endif %}</p>
-    </div> {% endcomment %}
-    <div class="stat-card">
-      <h3>Current Time</h3>
-      <p id="live-clock">Loading...</p>
+    
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-orange-200 hover:shadow-md transition-shadow duration-200">
+      <div class="flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-emerald-50 text-emerald-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 15 15"></polyline>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Current Period</p>
+          <p class="text-2xl font-semibold text-gray-900">{% if routines %}P{{ routines.0.period_number }}{% else %}None{% endif %}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-blue-200 hover:shadow-md transition-shadow duration-200">
+      <div class="flex items-center gap-4">
+        <div class="p-3 rounded-lg bg-pink-50 text-pink-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="M2 10h20M7 14h1m4 0h1m4 0h1"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Upcoming</p>
+          <p class="text-2xl font-semibold text-gray-900">{% if routines|length > 1 %}P{{ routines.1.period_number }}{% else %}None{% endif %}</p>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Schedule Table -->
-  <div class="schedule-card">
-    {% if routines %}
-    <div class="table-responsive">
-      <table class="schedule-table">
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Subject</th>
-            <th>Grade</th>
-            <th>Section</th>
-            {% comment %} <th>Time</th> {% endcomment %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in routines %}
-          <tr>
-            <td>
-              <span class="period-badge">P{{ r.period_number }}</span>
-            </td>
-            <td>
-              <div class="subject-cell">
-                <div class="subject-color" style="background: #{{ r.subject.color|default:'6366f1' }};"></div>
-                {{ r.subject.name }}
+  <!-- Schedule Cards -->
+  <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+      {% if routines %}
+      <div class="p-6 border-b border-gray-100 bg-indigo-50/20">
+        <div class="flex justify-between items-center">
+          <h2 class="text-xl font-bold text-indigo-900">📅 Today's Classes</h2>
+          <span class="text-sm font-semibold text-indigo-600">{{ routines|length }} Period{{ routines|pluralize }}</span>
+        </div>
+      </div>
+
+      <div class="divide-y divide-gray-100">
+        {% for r in routines %}
+        <div class="p-6 hover:bg-indigo-50/10 transition group">
+          <div class="flex items-start gap-4">
+            <!-- Period circle & time -->
+            <div class="flex flex-col items-center min-w-[70px]">
+              <span class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shadow-sm">
+                P{{ r.period_number }}
+              </span>
+              <span class="mt-2 text-[11px] font-medium text-indigo-500">
+                {% cycle '8:00-8:45' '8:45-9:30' '9:30-10:15' '10:30-11:15' '11:15-12:00' '12:00-12:45' %}
+              </span>
+            </div>
+
+            <!-- Main class info and actions -->
+            <div class="flex-1">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <!-- Subject & Grade Info -->
+                <div>
+                  <div class="flex items-center gap-2">
+                    <div class="h-3 w-3 rounded-full" style="background: #{{ r.subject.color|default:'6366f1' }}"></div>
+                    <h3 class="font-semibold text-gray-900 text-base">{{ r.subject.name }}</h3>
+                  </div>
+                  <div class="text-sm text-gray-600 mt-1">
+                    🎓 Grade {{ r.grade.grade_number }} - {{ r.section.name }} &nbsp;&nbsp; 🏫 {{ r.room_number|default:"Room N/A" }}
+                  </div>
+                </div>
+
+                <!-- Action -->
+                <div class="mt-2 sm:mt-0">
+                  <button class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                    ✅ Take Attendance
+                  </button>
+                </div>
               </div>
-            </td>
-            <td>Grade {{ r.grade.grade_number }}</td>
-            <td>{{ r.section.name }}</td>
-            {% comment %} <td>{% cycle '8:00-8:45' '8:45-9:30' '9:30-10:15' '10:30-11:15' '11:15-12:00' '12:00-12:45' %}</td> {% endcomment %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="p-12 text-center bg-white">
+        <div class="mx-auto h-24 w-24 text-gray-300 animate-bounce">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3 class="mt-4 text-xl font-semibold text-gray-800">No classes scheduled today</h3>
+        <p class="mt-2 text-gray-500 max-w-md mx-auto">You don't have any classes scheduled for today. Enjoy your free time!</p>
+        <div class="mt-6 flex justify-center gap-3">
+          <button class="inline-flex items-center gap-2 px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 ring-offset-2 ring-indigo-500">
+            📅 View Weekly Schedule
+          </button>
+          <button class="inline-flex items-center gap-2 px-4 py-2 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-2 ring-offset-2 ring-indigo-500">
+            📝 Request Change
+          </button>
+        </div>
+      </div>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="empty-state">
-      <img src="/static/images/calendar-empty.svg" alt="No classes" width="150">
-      <h3>No classes scheduled</h3>
-      <p>Enjoy your free day!</p>
-    </div>
-    {% endif %}
+
+
   </div>
-</div>
-
-<style>
-.routine-dashboard {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #1e293b;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.dashboard-header h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.text-light {
-  color: #64748b;
-  margin-top: 0.5rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: #4338ca;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 0.5rem;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.stat-card h3 {
-  font-size: 0.875rem;
-  color: #64748b;
-  margin: 0 0 0.5rem 0;
-  font-weight: 500;
-}
-
-.stat-card p {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.schedule-card {
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.schedule-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.schedule-table th {
-  background: #f8fafc;
-  padding: 1rem 1.5rem;
-  text-align: left;
-  font-size: 0.75rem;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.schedule-table td {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  vertical-align: middle;
-}
-
-.period-badge {
-  display: inline-block;
-  background: #e0e7ff;
-  color: #4f46e5;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.subject-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.subject-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.empty-state {
-  padding: 3rem 2rem;
-  text-align: center;
-}
-
-.empty-state img {
-  opacity: 0.7;
-  margin-bottom: 1rem;
-}
-
-.empty-state h3 {
-  font-size: 1.25rem;
-  margin: 0 0 0.5rem 0;
-}
-
-.empty-state p {
-  color: #64748b;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-</style>
 
 <script>
-// Live clock for the dashboard
+// Live clock for the dashboard in 12-hour format with AM/PM
 function updateClock() {
   const now = new Date();
-  const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute:'2-digit' });
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+  // Convert to 12-hour format
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  
+  const timeString = `${hours}:${minutes} ${ampm}`;
   document.getElementById('live-clock').textContent = timeString;
 }
 setInterval(updateClock, 1000);
-updateClock();
+updateClock(); // Initialize immediately
 </script>
 {% endblock %}
