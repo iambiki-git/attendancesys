@@ -1242,6 +1242,28 @@ def upload_students_csv(request):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
+
+
+def get_teacher_assignments(request):
+    school = request.user.school
+    routines = Routine.objects.filter(school=school)
+
+    teacher_map = {}
+
+    for r in routines:
+        key = f"{r.day}-{r.period_number}"
+        tid = str(r.teacher.id)
+
+        if tid not in teacher_map:
+            teacher_map[tid] = set()
+        teacher_map[tid].add(key)
+
+    for k in teacher_map:
+        teacher_map[k] = list(teacher_map[k])
+
+    return JsonResponse(teacher_map)
+
+
 def routine_setup(request):
     school = request.user.school
     grades = Grade.objects.filter(school=school).order_by('grade_number')
@@ -1254,10 +1276,18 @@ def routine_setup(request):
         sections_list = list(sections.filter(grade=grade).values('id', 'name'))
         sections_by_grade[grade.id] = sections_list
 
+     # ✅ Prepare subject mapping
+    subjects_by_grade = {}
+    for grade in grades:
+        subjects_list = list(subjects.filter(grade=grade).values('id', 'name'))
+        subjects_by_grade[grade.id] = subjects_list
+
+
     context = {
         'grades': grades,
         'sections_by_grade': sections_by_grade,
-        'subjects': subjects,
+        #'subjects': subjects,
+        'subjects_by_grade': subjects_by_grade,  # ✅ Added
         'teachers': teachers,
     }
     return render(request, 'dashboard/school_dashboard/routine_setupp.html', context)
@@ -1267,6 +1297,162 @@ def routine_setup(request):
 import traceback
 from django.views.decorators.csrf import csrf_exempt
 from school.models import Routine
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+# @csrf_exempt
+# def save_routine(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             routines = data.get('routines', {})
+#             period_names = data.get('period_names', {})
+
+#             school = request.user.school  # assuming you're using request.user
+
+#             for key, daily_routine in routines.items():
+#                 grade_id, section_id = map(int, key.split('-'))
+#                 grade = Grade.objects.get(id=grade_id)
+#                 section = Section.objects.get(id=section_id)
+
+#                 for day, periods in daily_routine.items():
+#                     for period_str, entry in periods.items():
+#                         period_number = int(period_str)
+#                         subject_id = entry.get('subject_id')
+#                         teacher_id = entry.get('teacher_id')
+
+#                         if not subject_id or not teacher_id:
+#                             continue
+
+#                         subject = Subjects.objects.get(id=subject_id)
+#                         teacher = TeacherProfile.objects.get(id=teacher_id)
+
+#                         # ❌ Check for conflict in other sections
+#                         conflict = Routine.objects.filter(
+#                             day=day,
+#                             period_number=period_number,
+#                             teacher=teacher,
+#                             school=school
+#                         ).exclude(grade=grade, section=section).exists()
+
+#                         if conflict:
+#                             return JsonResponse({
+#                                 'success': False,
+#                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
+#                             })
+
+#                         # ✅ Save or update
+#                         Routine.objects.update_or_create(
+#                             day=day,
+#                             period_number=period_number,
+#                             grade=grade,
+#                             section=section,
+#                             school=school,
+#                             defaults={
+#                                 'subject': subject,
+#                                 'teacher': teacher
+#                             }
+#                         )
+
+
+#             return JsonResponse({'success': True})
+        
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+#     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+# @csrf_exempt
+# def save_routine(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             routines = data.get('routines', {})
+#             period_names = data.get('period_names', {})
+
+#             school = request.user.school  # assuming you're using request.user
+
+#             for key, daily_routine in routines.items():
+#                 grade_id, section_id = map(int, key.split('-'))
+#                 grade = Grade.objects.get(id=grade_id)
+#                 section = Section.objects.get(id=section_id)
+
+#                 class_teacher_set = False  # Track if class teacher is already set
+
+#                 for day, periods in daily_routine.items():
+#                     for period_str, entry in periods.items():
+#                         period_number = int(period_str)
+#                         subject_id = entry.get('subject_id')
+#                         teacher_id = entry.get('teacher_id')
+
+#                         if not subject_id or not teacher_id:
+#                             continue
+
+#                         subject = Subjects.objects.get(id=subject_id)
+#                         teacher = TeacherProfile.objects.get(id=teacher_id)
+
+#                         # ❌ Check for conflict in other sections
+#                         conflict = Routine.objects.filter(
+#                             day=day,
+#                             period_number=period_number,
+#                             teacher=teacher,
+#                             school=school
+#                         ).exclude(grade=grade, section=section).exists()
+
+#                         if conflict:
+#                             return JsonResponse({
+#                                 'success': False,
+#                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
+#                             })
+
+#                         # ✅ Save or update routine
+#                         Routine.objects.update_or_create(
+#                             day=day,
+#                             period_number=period_number,
+#                             grade=grade,
+#                             section=section,
+#                             school=school,
+#                             defaults={
+#                                 'subject': subject,
+#                                 'teacher': teacher
+#                             }
+#                         )
+
+#                         # # ✅ Set Class Teacher if Sunday Period 1
+#                         # if day == "Sunday" and period_number == 1 and not class_teacher_set:
+#                         #     teacher.grade = grade
+#                         #     teacher.section = section
+#                         #     teacher.save()
+#                         #     class_teacher_set = True
+
+#                         if day == "Sunday" and period_number == 1 and not class_teacher_set:
+#                             # Unset any previous class teacher assigned to this grade-section
+#                             TeacherProfile.objects.filter(
+#                                 grade=grade,
+#                                 section=section
+#                             ).exclude(id=teacher.id).update(
+#                                 grade=None,
+#                                 section=None
+#                             )
+
+#                             # Set the current teacher as class teacher (if not already)
+#                             if teacher.grade_id != grade.id or teacher.section_id != section.id:
+#                                 teacher.grade = grade
+#                                 teacher.section = section
+#                                 teacher.save()
+
+#                             class_teacher_set = True
+
+
+#             return JsonResponse({'success': True})
+        
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+#     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
 @csrf_exempt
 @login_required
 def save_routine(request):
@@ -1275,45 +1461,101 @@ def save_routine(request):
             data = json.loads(request.body)
             routines = data.get('routines', {})
             period_names = data.get('period_names', {})
-            school = request.user.school  # assumes user has a related school
 
-            for key, days in routines.items():
-                grade_id, section_id = key.split("-")
+            school = request.user.school  # assuming you're using request.user
+
+            for key, daily_routine in routines.items():
+                grade_id, section_id = map(int, key.split('-'))
                 grade = Grade.objects.get(id=grade_id)
                 section = Section.objects.get(id=section_id)
 
-                for day, periods in days.items():
-                    for period_number_str, entry in periods.items():
-                        try:
-                            subject = Subjects.objects.get(id=int(entry['subject_id']))
-                            teacher = TeacherProfile.objects.get(id=int(entry['teacher_id']))
-                            period_number = int(period_number_str)
+                class_teacher_set = False  # Track if class teacher is already set
 
-                            Routine.objects.update_or_create(
-                                day=day,
-                                period_number=period_number,
-                                grade=grade,
-                                section=section,
-                                defaults={
-                                    'subject': subject,
-                                    'teacher': teacher,
-                                    'school': school
-                                }
-                            )
-                        except Exception as sub_e:
-                            traceback.print_exc()
+                for day, periods in daily_routine.items():
+                    # ✅ Step 1: Delete any removed periods
+                    existing_periods = Routine.objects.filter(
+                        grade=grade,
+                        section=section,
+                        day=day,
+                        school=school
+                    ).values_list('period_number', flat=True)
+
+                    submitted_periods = [int(p) for p in periods.keys()]
+                    to_delete = set(existing_periods) - set(submitted_periods)
+
+                    if to_delete:
+                        Routine.objects.filter(
+                            grade=grade,
+                            section=section,
+                            day=day,
+                            school=school,
+                            period_number__in=to_delete
+                        ).delete()
+
+                    # ✅ Step 2: Save or update submitted periods
+                    for period_str, entry in periods.items():
+                        period_number = int(period_str)
+                        subject_id = entry.get('subject_id')
+                        teacher_id = entry.get('teacher_id')
+
+                        if not subject_id or not teacher_id:
+                            continue
+
+                        subject = Subjects.objects.get(id=subject_id)
+                        teacher = TeacherProfile.objects.get(id=teacher_id)
+
+                        # ❌ Check for conflict in other sections
+                        conflict = Routine.objects.filter(
+                            day=day,
+                            period_number=period_number,
+                            teacher=teacher,
+                            school=school
+                        ).exclude(grade=grade, section=section).exists()
+
+                        if conflict:
                             return JsonResponse({
                                 'success': False,
-                                'error': f'Error on {day} period {period_number_str}: {str(sub_e)}'
-                            }, status=400)
+                                'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
+                            })
+
+                        # ✅ Save or update routine
+                        Routine.objects.update_or_create(
+                            day=day,
+                            period_number=period_number,
+                            grade=grade,
+                            section=section,
+                            school=school,
+                            defaults={
+                                'subject': subject,
+                                'teacher': teacher
+                            }
+                        )
+
+                        # ✅ Set or update Class Teacher if Sunday Period 1
+                        if day == "Sunday" and period_number == 1 and not class_teacher_set:
+                            # Unset any previous class teacher assigned to this grade-section
+                            TeacherProfile.objects.filter(
+                                grade=grade,
+                                section=section
+                            ).exclude(id=teacher.id).update(
+                                grade=None,
+                                section=None
+                            )
+
+                            # Set the current teacher as class teacher
+                            if teacher.grade_id != grade.id or teacher.section_id != section.id:
+                                teacher.grade = grade
+                                teacher.section = section
+                                teacher.save()
+
+                            class_teacher_set = True
 
             return JsonResponse({'success': True})
 
         except Exception as e:
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            return JsonResponse({'success': False, 'error': str(e)})
 
-    return JsonResponse({'error': 'Invalid method'}, status=405)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 @login_required
@@ -1324,18 +1566,15 @@ def load_routine(request):
     if not grade_id or not section_id:
         return JsonResponse({'error': 'Missing grade or section'}, status=400)
 
+    key = f"{grade_id}-{section_id}"
+    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    routine_data = {key: {day: {} for day in days}}
+
     routines = Routine.objects.filter(grade_id=grade_id, section_id=section_id)
 
-    routine_data = {}
     for entry in routines:
-        key = f"{entry.grade.id}-{entry.section.id}"
         day = entry.day
         period = entry.period_number
-
-        if key not in routine_data:
-            routine_data[key] = {}
-        if day not in routine_data[key]:
-            routine_data[key][day] = {}
 
         routine_data[key][day][period] = {
             "subject_id": entry.subject.id,
@@ -1345,6 +1584,56 @@ def load_routine(request):
         }
 
     return JsonResponse({'routine': routine_data})
+
+
+
+
+
+# @login_required
+# def get_busy_teachers(request):
+#     day = request.GET.get('day')
+#     period = request.GET.get('period')
+
+#     if not day or not period:
+#         return JsonResponse({'error': 'Missing day or period'}, status=400)
+
+#     school = request.user.school
+#     busy_teachers = Routine.objects.filter(
+#         day=day,
+#         period_number=period,
+#         school=school
+#     ).values_list('teacher_id', flat=True)
+
+#     return JsonResponse({'busy_teacher_ids': list(busy_teachers)})
+
+
+@login_required
+def get_busy_teachers(request):
+    day = request.GET.get('day')
+    period = request.GET.get('period')
+    grade = request.GET.get('grade')
+    section = request.GET.get('section')
+
+    if not day or not period:
+        return JsonResponse({'error': 'Missing day or period'}, status=400)
+
+    filters = {
+        'day': day,
+        'period_number': period,
+        'school': request.user.school
+    }
+
+    qs = Routine.objects.filter(**filters)
+
+    # 🟢 Exclude the current cell's teacher assignment
+    if grade and section:
+        qs = qs.exclude(grade_id=grade, section_id=section)
+
+    busy_teachers = qs.values_list('teacher_id', flat=True)
+
+    return JsonResponse({'busy_teacher_ids': list(busy_teachers)})
+
+
 
 from django.utils import timezone
 def teacher_routine_view(request):
@@ -1367,3 +1656,86 @@ def teacher_routine_view(request):
         return render(request, 'not_authorized.html')
 
 
+
+
+
+# @csrf_exempt
+# def assign_class_teacher(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             grade_id = data.get("grade")
+#             section_id = data.get("section")
+#             teacher_id = data.get("teacher_id")
+
+#             # Clear previous class teacher for this section
+#             TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
+
+#             # Assign new class teacher
+#             teacher = TeacherProfile.objects.get(id=teacher_id)
+#             teacher.grade_id = grade_id
+#             teacher.section_id = section_id
+#             teacher.save()
+
+#             return JsonResponse({'success': True})
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+
+# @csrf_exempt
+# def assign_class_teacher(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             grade_id = data.get("grade")
+#             section_id = data.get("section")
+#             teacher_id = data.get("teacher_id")
+
+#             # Clear previous class teacher for this section
+#             TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
+
+#             # Assign new class teacher
+#             teacher = TeacherProfile.objects.get(id=teacher_id)
+#             teacher.grade_id = grade_id
+#             teacher.section_id = section_id
+#             teacher.save()
+
+#             # Update or create Sunday Period 1 to assign class teacher
+#             days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+#             for day in days:
+#                 Routine.objects.update_or_create(
+#                     grade_id=grade_id,
+#                     section_id=section_id,
+#                     day=day,
+#                     period_number=1,
+#                     defaults={
+#                         'teacher': teacher
+#                     }
+#                 )
+
+#             return JsonResponse({'success': True})
+
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+
+# def get_class_teacher(request):
+#     grade_id = request.GET.get("grade")
+#     section_id = request.GET.get("section")
+
+#     all_teachers = TeacherProfile.objects.select_related('user')
+#     current_teacher = all_teachers.filter(grade_id=grade_id, section_id=section_id).first()
+
+#     response = {
+#         "current_teacher_id": current_teacher.id if current_teacher else None,
+#         "teacher_list": []
+#     }
+
+#     for t in all_teachers:
+#         response["teacher_list"].append({
+#             "id": t.id,
+#             "name": t.user.get_full_name(),
+#             "assigned": bool(t.grade_id and t.section_id and (t.grade_id != int(grade_id) or t.section_id != int(section_id)))
+#         })
+
+#     return JsonResponse(response)

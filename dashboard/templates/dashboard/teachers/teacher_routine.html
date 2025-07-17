@@ -25,10 +25,10 @@
       <h3>Total Classes</h3>
       <p>{{ routines|length }}</p>
     </div>
-    <div class="stat-card">
+    {% comment %} <div class="stat-card">
       <h3>Next Class</h3>
       <p>{% if routines %}Period {{ routines.0.period_number }}{% else %}None{% endif %}</p>
-    </div>
+    </div> {% endcomment %}
     <div class="stat-card">
       <h3>Current Time</h3>
       <p id="live-clock">Loading...</p>
@@ -46,7 +46,7 @@
             <th>Subject</th>
             <th>Grade</th>
             <th>Section</th>
-            <th>Time</th>
+            {% comment %} <th>Time</th> {% endcomment %}
           </tr>
         </thead>
         <tbody>
@@ -63,7 +63,7 @@
             </td>
             <td>Grade {{ r.grade.grade_number }}</td>
             <td>{{ r.section.name }}</td>
-            <td>{% cycle '8:00-8:45' '8:45-9:30' '9:30-10:15' '10:30-11:15' '11:15-12:00' '12:00-12:45' %}</td>
+            {% comment %} <td>{% cycle '8:00-8:45' '8:45-9:30' '9:30-10:15' '10:30-11:15' '11:15-12:00' '12:00-12:45' %}</td> {% endcomment %}
           </tr>
           {% endfor %}
         </tbody>
