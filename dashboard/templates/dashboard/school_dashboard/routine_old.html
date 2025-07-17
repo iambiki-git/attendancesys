@@ -197,13 +197,6 @@
 
 <h2>Class Routine Manager</h2>
 
-<!-- Global Save Button -->
-<button id="globalSaveBtn" onclick="saveAllRoutines()"
-  style="margin: 0 auto 1.5rem; display: block; padding: 0.7rem 1.5rem; font-size: 1rem;
-         background-color: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer;">
-  📂 Save All Routines
-</button>
-
 <!-- Controls -->
 <div class="controls">
   <label>Grade:
@@ -232,6 +225,10 @@
   </label>
   <button onclick="renderTable()">Generate Routine</button>
   <button onclick="loadRoutine()">🔄 Load Routine</button>
+<button onclick="saveAllRoutines()" style="background: #2ecc71; color: white;">
+  📂 Save All Routines
+</button>
+
 
 </div>
 
@@ -249,6 +246,9 @@
     {% endfor %}
     </select>
   </label>
+  <p id="noSubjectMessage" style="display: none; color: #c0392b; font-size: 0.9rem; margin-top: 0.5rem;">
+  ⚠️ Please set subjects for this grade first.
+</p>
   <label>Teacher:
     <select id="teacherInput">
         <option value="">select teacher</option>
@@ -257,14 +257,6 @@
     {% endfor %}
     </select>
   </label>
-  {% comment %} <label>Class Teacher:
-  <select id="classTeacherInput">
-    <option value="">-- Optional --</option>
-    {% for teacher in teachers %}
-      <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
-    {% endfor %}
-  </select>
-</label> {% endcomment %}
 
   <button onclick="saveCell()">✅ Save</button>
   <button onclick="closePopup()">❌ Cancel</button>
@@ -346,8 +338,9 @@ function renderTable() {
 
 
   const currentData = routineData[key];
-  const existing = document.getElementById(`routine-${key}`);
-  if (existing) existing.remove();
+  //const existing = document.getElementById(`routine-${key}`);
+  //if (existing) existing.remove();
+  const existingTable = document.getElementById(`routine-${key}`);
 
   const wrapper = document.createElement('div');
   wrapper.id = `routine-${key}`;
@@ -458,20 +451,115 @@ function renderTable() {
   table.appendChild(tbody);
   wrapper.appendChild(table);
   //tableContainer.appendChild(wrapper);
-  tableContainer.insertBefore(wrapper, tableContainer.firstChild);
+
+  if (existingTable) {
+    existingTable.replaceWith(wrapper);  // ✅ Update only one
+  } else {
+    tableContainer.appendChild(wrapper); // ✅ Add to list
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });  // Optional
+  } 
+  
+
+
+  //tableContainer.insertBefore(wrapper, tableContainer.firstChild);
 
 
   fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
   .then(res => res.json())
   .then(data => {
-    if (data.teacher_name) {
-      const ctPara = document.createElement('p');
-      ctPara.textContent = `👩‍🏫 Class Teacher: ${data.teacher_name}`;
-      ctPara.style.color = '#16a085';
-      ctPara.style.fontWeight = 'bold';
-      ctPara.style.margin = '0';
-      headerDiv.appendChild(ctPara);
+    //if (data.teacher_name) {
+     // const ctPara = document.createElement('p');
+     // ctPara.textContent = `👩‍🏫 Class Teacher: ${data.teacher_name}`;
+     // ctPara.style.color = '#16a085';
+    //  ctPara.style.fontWeight = 'bold';
+    //  ctPara.style.margin = '0';
+    //  headerDiv.appendChild(ctPara);
+   // }
+
+fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.teacher_list) {
+      const ctLabel = document.createElement('label');
+      ctLabel.textContent = "👩‍🏫 Class Teacher: ";
+      ctLabel.style.fontWeight = 'bold';
+      ctLabel.style.color = '#16a085';
+      ctLabel.style.marginRight = '0.5rem';
+
+      const ctDropdown = document.createElement('select');
+      ctDropdown.style.padding = '5px 10px';
+      ctDropdown.style.borderRadius = '8px';
+      ctDropdown.style.border = '1px solid #ccc';
+      ctDropdown.style.marginRight = '10px';
+
+      data.teacher_list.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name + (t.assigned && t.id !== data.current_teacher_id ? ' (assigned)' : '');
+        opt.disabled = t.assigned && t.id !== data.current_teacher_id;
+        if (t.id === data.current_teacher_id) opt.selected = true;
+        ctDropdown.appendChild(opt);
+      });
+
+      ctDropdown.addEventListener('change', () => {
+        const newId = ctDropdown.value;
+        fetch('/assign_class_teacher/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+          },
+          body: JSON.stringify({
+            grade: grade,
+            section: section,
+            teacher_id: newId
+          })
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) {
+            alert("✅ Class teacher updated and routine refreshed.");
+
+            const key = `${grade}-${section}`;
+            if (!routineData[key]) routineData[key] = {};
+
+            const selectedOption = ctDropdown.querySelector(`option[value="${newId}"]`);
+            const teacherName = selectedOption ? selectedOption.textContent.replace(" (assigned)", "") : "";
+
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            days.forEach(day => {
+              if (!routineData[key][day]) routineData[key][day] = {};
+              const existing = routineData[key][day][1] || {};
+              routineData[key][day][1] = {
+                subject: existing.subject || "",
+                subject_id: existing.subject_id || null,
+                teacher: teacherName,
+                teacher_id: parseInt(newId)
+              };
+            });
+
+            // Re-load the table from backend
+            loadRoutine();
+          } else {
+            alert("❌ Error updating class teacher: " + (res.error || "Unknown error"));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("❌ Network error");
+        });
+      });
+
+      const ctWrapper = document.createElement("div");
+      ctWrapper.style.display = "flex";
+      ctWrapper.style.alignItems = "center";
+      ctWrapper.appendChild(ctLabel);
+      ctWrapper.appendChild(ctDropdown);
+
+      headerDiv.appendChild(ctWrapper);
     }
+  });
+
   });
 
 }
@@ -500,7 +588,7 @@ function syncDropdownsToKey(key) {
 }
 
 
-
+{% comment %} 
 function resetCell(event, day, periodStart, span, key) {
   event.stopPropagation();
 
@@ -518,7 +606,32 @@ function resetCell(event, day, periodStart, span, key) {
   if (oldTable) oldTable.remove();
 
   renderTable();
+} {% endcomment %}
+
+function resetCell(event, day, periodStart, span, key) {
+  event.stopPropagation();
+
+  syncDropdownsToKey(key);
+
+  if (!routineData[key]) routineData[key] = {};
+  if (!routineData[key][day]) routineData[key][day] = {};
+
+  for (let i = 0; i < span; i++) {
+    delete routineData[key][day][periodStart + i];
+  }
+
+  // 🧹 Optionally: remove the day if it’s completely empty
+  // But do NOT delete it — or rendering will skip the day!
+  if (Object.keys(routineData[key][day]).length === 0) {
+    routineData[key][day] = {};
+  }
+
+  const oldTable = document.getElementById(`routine-${key}`);
+  if (oldTable) oldTable.remove();
+
+  renderTable();
 }
+
  
 
 {% comment %} function resetCell(event, day, periodStart, span, key) {
@@ -684,7 +797,25 @@ function openPopup(cell, colspan = 1, currentData) {
     cell, colspan, currentData, key, day, periodStart
   };
 
+  //const subjectInput = document.getElementById("subjectInput");
   const subjectInput = document.getElementById("subjectInput");
+  const noSubjectMsg = document.getElementById("noSubjectMessage");
+
+subjectInput.innerHTML = '<option value="">select subject</option>'; // clear
+
+// Check if subject list exists for this grade
+if (subjectsByGrade[grade] && subjectsByGrade[grade].length > 0) {
+  subjectsByGrade[grade].forEach(subj => {
+    const opt = document.createElement("option");
+    opt.value = subj.id;
+    opt.textContent = subj.name;
+    subjectInput.appendChild(opt);
+  });
+  noSubjectMsg.style.display = "none";  // ✅ Hide message
+} else {
+  noSubjectMsg.style.display = "block"; // ✅ Show message
+}
+  
   const teacherInput = document.getElementById("teacherInput");
 
   // Reset all teacher options
@@ -703,7 +834,8 @@ function openPopup(cell, colspan = 1, currentData) {
   }
 
   // Step 2: Fetch busy from backend DB
-  fetch(`/get_busy_teachers/?day=${day}&period=${periodStart}`)
+  //fetch(`/get_busy_teachers/?day=${day}&period=${periodStart}`)
+  fetch(`/get_busy_teachers/?day=${day}&period=${periodStart}&grade=${grade}&section=${section}`)
     .then(res => res.json())
     .then(data => {
       const busyFromBackend = new Set(data.busy_teacher_ids || []);
@@ -982,6 +1114,8 @@ function getCSRFToken() {
 
   // Get the sections data from Django context
   const sectionsByGrade = {{ sections_by_grade|safe }};
+  const subjectsByGrade = {{ subjects_by_grade|safe }};
+
 
   const gradeSelect = document.getElementById("gradeSelect");
   const sectionSelect = document.getElementById("sectionSelect");
@@ -1037,7 +1171,7 @@ function getCSRFToken() {
 
 
 
-function loadRoutine() {
+{% comment %} function loadRoutine() {
   const gradeId = document.getElementById("gradeSelect").value;
   const sectionId = document.getElementById("sectionSelect").value;
 
@@ -1068,8 +1202,41 @@ function loadRoutine() {
       console.error("❌ Failed to load routine", err);
       alert("❌ Error loading routine. Check console.");
     });
-} 
+}  {% endcomment %}
 
+function loadRoutine() {
+  tableContainer.innerHTML = '';  // ✅ Clear previous routine when loading
+
+  const gradeId = document.getElementById("gradeSelect").value;
+  const sectionId = document.getElementById("sectionSelect").value;
+
+  if (!gradeId || !sectionId) {
+    alert("⚠️ Please select both Grade and Section first.");
+    return;
+  }
+
+  const key = `${gradeId}-${sectionId}`;
+
+  tableContainer.innerHTML = ''; // ✅ Only show one routine when loading
+
+  fetch(`/load_routine/?grade=${gradeId}&section=${sectionId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.routine && data.routine[key]) {
+        routineData = data.routine;
+      } else {
+        routineData[key] = {};
+        alert("ℹ️ No saved routine found. You can generate a new one.");
+      }
+
+      periodNames[key] = periodNames[key] || [];
+      renderTable();
+    })
+    .catch(err => {
+      console.error("❌ Failed to load routine", err);
+      alert("❌ Error loading routine. Check console.");
+    });
+}
 
 
 
