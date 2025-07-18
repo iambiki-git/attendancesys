@@ -49,7 +49,6 @@ urlpatterns = [
     path('teacher/dashboard/', teacher_dashboard, name='teacher_dashboard'),
     path('student/attendance/', attendance, name='attendance'),
     path('submit/attendance/', submit_attendance, name='submit_attendance'),
-    path('student/status/', student_status, name='student_status'),
     path('routine/', teacher_routine_view, name='teacher_routine'),
     
     
@@ -57,6 +56,7 @@ urlpatterns = [
     #path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
     #path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
     path('import_students_csv/', import_students_csv, name='import_students_csv'),
+    path('core',code)
 
 
 ]

@@ -733,7 +733,7 @@ def create_teacher(request):
                 school=school,
                 # grade=grade,
                 # section=section,
-                subjects=subjects
+                #subjects=subjects
             )
 
             messages.success(request, f"Teacher '{username}' created successfully!")
@@ -768,28 +768,19 @@ def update_teacher(request, teacher_id):
         teacher = get_object_or_404(TeacherProfile, user__id=teacher_id, school=request.user.school)
         
         try:
-            # Update user fields
             user = teacher.user
             user.first_name = request.POST.get('first_name', user.first_name)
             user.last_name = request.POST.get('last_name', user.last_name)
+            user.email = request.POST.get('email', user.email)
+            user.username = request.POST.get('username', user.username)
             user.save()
             
-            # Update teacher profile
-            teacher.subjects = request.POST.get('subject', teacher.subjects)
-            
-            # Update grade and section with school scope
             grade_id = request.POST.get('grade_level')
-            if grade_id:
-                teacher.grade = get_object_or_404(Grade, id=grade_id, school=request.user.school)
-            else:
-                teacher.grade = None
-                
+            teacher.grade = get_object_or_404(Grade, id=grade_id, school=request.user.school) if grade_id else None
+
             section_id = request.POST.get('section')
-            if section_id:
-                teacher.section = get_object_or_404(Section, id=section_id, school=request.user.school)
-            else:
-                teacher.section = None
-                
+            teacher.section = get_object_or_404(Section, id=section_id, school=request.user.school) if section_id else None
+            
             teacher.save()
             
             return JsonResponse({
@@ -797,12 +788,12 @@ def update_teacher(request, teacher_id):
                 'teacher': {
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'subject': teacher.subjects,
+                    'email': user.email,
+                    'username': user.username,
                     'grade': teacher.grade.grade_number if teacher.grade else None,
                     'section': teacher.section.name if teacher.section else None,
                 }
             })
-            
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     
@@ -907,7 +898,102 @@ def teacher_dashboard(request):
 
 
 
+# from datetime import date
+# def attendance(request):
+#     teacher = request.user.teacherprofile
+#     grade = teacher.grade
+#     section = teacher.section
+#     today = timezone.now().date()
+
+#     students = Student.objects.filter(
+#         grade = grade,
+#         section = section,
+#         school = teacher.school
+#     ).order_by('roll_number')
+
+#     # Check if any attendance exists for today
+#     attendance_submitted = Attendance.objects.filter(
+#         student__grade=grade,
+#         student__section=section,
+#         student__school=teacher.school,
+#         date=today
+#     ).exists()
+
+#     context = {
+#         'students': students,
+#         'current_date': date.today(),
+#         'attendance_submitted': attendance_submitted,
+
+#     }
+#     return render(request, 'dashboard/teachers/attendance_page.html', context)
+
+
+# from django.views.decorators.http import require_POST
+# from datetime import datetime
+# @require_POST
+# def submit_attendance(request):
+#     access_token = get_valid_access_token(request)
+#     API_URL = f"{settings.API_BASE_URL}attendance/"
+#     HEADERS = {
+#         'Authorization': f'Bearer {access_token}',
+#         'Content-Type': 'application/json',
+#     }
+
+#     try:
+#         attendance_date = request.POST.get("attendance_date", "").strip()
+#         if not attendance_date:
+#             attendance_date = datetime.now().strftime('%Y-%m-%d')
+
+#         for key, value in request.POST.items():
+#             if key.startswith('student_'):
+#                 student_id = key.split('_')[1]
+                
+#                 payload = {
+#                     "student": str(student_id),
+#                     "date": attendance_date,
+#                     "status": value,
+#                     "notes": request.POST.get(f"note_{student_id}", "").strip() 
+#                            if value in ["Absent", "Late"] else ""
+#                 }
+
+#                 # Use PATCH for existing records, POST for new ones
+#                 method = 'PATCH' if is_existing_record(student_id, attendance_date) else 'POST'
+#                 endpoint = f"{API_URL}{student_id}/{attendance_date}/" if method == 'PATCH' else API_URL
+
+#                 response = requests.request(
+#                     method,
+#                     endpoint,
+#                     headers=HEADERS,
+#                     json=payload,
+#                     timeout=5
+#                 )
+
+#                 if response.status_code not in [200, 201]:
+#                     error_data = response.json()
+#                     messages.error(request, f"Error for student {student_id}: {error_data}")
+#                     return redirect('attendance')
+
+#         messages.success(request, "Attendance saved successfully!")
+#         return redirect('attendance')
+
+#     except requests.exceptions.RequestException as e:
+#         messages.error(request, f"Connection failed: {str(e)}")
+#         return redirect('attendance')
+
+# def is_existing_record(student_id, date):
+#     """Check if record exists (you might need to call your API for this)"""
+#     # This is a placeholder - implement based on your API
+#     # Example implementation might call GET /attendance/{student_id}/{date}/
+#     return False  # Default to False if you can't check
+
+
+from django.utils import timezone
 from datetime import date
+from django.views.decorators.http import require_POST
+from django.conf import settings
+def is_existing_record(student_id, date_str):
+    return Attendance.objects.filter(student_id=student_id, date=date_str).exists()
+
 def attendance(request):
     teacher = request.user.teacherprofile
     grade = teacher.grade
@@ -915,12 +1001,16 @@ def attendance(request):
     today = timezone.now().date()
 
     students = Student.objects.filter(
-        grade = grade,
-        section = section,
-        school = teacher.school
+        grade=grade,
+        section=section,
+        school=teacher.school
     ).order_by('roll_number')
 
-    # Check if any attendance exists for today
+    for student in students:
+        record = Attendance.objects.filter(student=student, date=today).first()
+        student.attendance_status_today = record.status if record else "Not Marked"
+        student.note_today = record.notes if record else ""
+
     attendance_submitted = Attendance.objects.filter(
         student__grade=grade,
         student__section=section,
@@ -932,13 +1022,10 @@ def attendance(request):
         'students': students,
         'current_date': date.today(),
         'attendance_submitted': attendance_submitted,
-
     }
     return render(request, 'dashboard/teachers/attendance_page.html', context)
 
 
-from django.views.decorators.http import require_POST
-from datetime import datetime
 @require_POST
 def submit_attendance(request):
     access_token = get_valid_access_token(request)
@@ -951,34 +1038,42 @@ def submit_attendance(request):
     try:
         attendance_date = request.POST.get("attendance_date", "").strip()
         if not attendance_date:
-            attendance_date = datetime.now().strftime('%Y-%m-%d')
+            attendance_date = timezone.now().date().strftime('%Y-%m-%d')
 
         for key, value in request.POST.items():
             if key.startswith('student_'):
                 student_id = key.split('_')[1]
-                
                 payload = {
                     "student": str(student_id),
                     "date": attendance_date,
                     "status": value,
-                    "notes": request.POST.get(f"note_{student_id}", "").strip() 
-                           if value in ["Absent", "Late"] else ""
+                    "notes": request.POST.get(f"note_{student_id}", "").strip()
+                        if value in ["Absent", "Late"] else ""
                 }
 
-                # Use PATCH for existing records, POST for new ones
-                method = 'PATCH' if is_existing_record(student_id, attendance_date) else 'POST'
-                endpoint = f"{API_URL}{student_id}/{attendance_date}/" if method == 'PATCH' else API_URL
+                attendance_id = get_existing_attendance_id(student_id, attendance_date)
 
-                response = requests.request(
-                    method,
-                    endpoint,
-                    headers=HEADERS,
-                    json=payload,
-                    timeout=5
-                )
+                if attendance_id:
+                    endpoint = f"{API_URL}{attendance_id}/"
+                    response = requests.patch(
+                        endpoint,
+                        headers=HEADERS,
+                        json=payload,
+                        timeout=5
+                    )
+                else:
+                    response = requests.post(
+                        API_URL,
+                        headers=HEADERS,
+                        json=payload,
+                        timeout=5
+                    )
 
                 if response.status_code not in [200, 201]:
-                    error_data = response.json()
+                    try:
+                        error_data = response.json()
+                    except ValueError:
+                        error_data = response.text or "Unknown error"
                     messages.error(request, f"Error for student {student_id}: {error_data}")
                     return redirect('attendance')
 
@@ -989,51 +1084,11 @@ def submit_attendance(request):
         messages.error(request, f"Connection failed: {str(e)}")
         return redirect('attendance')
 
-def is_existing_record(student_id, date):
-    """Check if record exists (you might need to call your API for this)"""
-    # This is a placeholder - implement based on your API
-    # Example implementation might call GET /attendance/{student_id}/{date}/
-    return False  # Default to False if you can't check
 
 
-def student_status(request):
-    teacher_profile = request.user.teacherprofile
-    
-    # Get students in teacher's grade/section
-    students = Student.objects.filter(
-        grade=teacher_profile.grade,
-        section=teacher_profile.section,
-        school=teacher_profile.school
-    ).order_by('roll_number')  # Ordered by roll number
-    
-    # Get today's date
-    today = timezone.now().date()
-    
-    # Get attendance data for today
-    attendance_today = Attendance.objects.filter(
-        student__in=students,
-        date=today
-    ).select_related('student')
-    
-    # Create a dictionary of attendance statuses
-    attendance_status = {att.student_id: att.status for att in attendance_today}
-    
-    # Count attendance types
-    present_count = sum(1 for status in attendance_status.values() if status == 'Present')
-    late_count = sum(1 for status in attendance_status.values() if status == 'Late')
-    absent_count = sum(1 for status in attendance_status.values() if status == 'Absent')
-    
-    context = {
-        'teacher_profile': teacher_profile,
-        'students': students,
-        'attendance_status': attendance_status,
-        'present_count': present_count,
-        'late_count': late_count,
-        'absent_count': absent_count,
-        'current_date': today
-    }
-
-    return render(request, 'dashboard/teachers/student_status.html', context)
+def get_existing_attendance_id(student_id, date_str):
+    record = Attendance.objects.filter(student_id=student_id, date=date_str).first()
+    return record.id if record else None
 
 
 from django.urls import reverse
@@ -1801,3 +1856,8 @@ def import_students_csv(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+
+def code(request):
+    return render(request,'code.html')
