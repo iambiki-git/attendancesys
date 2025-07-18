@@ -220,10 +220,10 @@
     <input type="checkbox" id="usePreviousNames" />
     Use previous column names
   </label>
-  <button onclick="renderTable()">Generate Routine</button>
-  <button onclick="loadRoutine()">🔄 Load Routine</button>
-  <button onclick="saveAllRoutines()" style="background: #2ecc71; color: white;">
-    📂 Save All Routines
+  <button onclick="renderTable()">✨ Generate</button>
+  <button onclick="loadRoutine()" style="background: #d9a241ff; color: white;">🔄 Load</button>
+  <button onclick="saveAllRoutines()" style="background: #794fe3ff; color: white;">
+    📂 Save
   </button>
 
 
@@ -449,29 +449,33 @@ function renderTable() {
   wrapper.appendChild(table);
   //tableContainer.appendChild(wrapper);
 
-  if (existingTable) {
-    existingTable.replaceWith(wrapper);  // ✅ Update only one
+  if (existingTable && existingTable.parentNode) {
+    existingTable.parentNode.replaceChild(wrapper, existingTable);  // 💡 Replace in-place
   } else {
-    tableContainer.appendChild(wrapper); // ✅ Add to list
-    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });  // Optional
-  } 
+    // Insert in alphabetical order of section/grade if you want sorted positioning:
+    const tables = [...tableContainer.querySelectorAll('div[id^="routine-"]')];
+    const currentKey = `${grade}-${section}`;
+
+    let inserted = false;
+    for (let i = 0; i < tables.length; i++) {
+      const otherKey = tables[i].id.replace('routine-', '');
+      if (otherKey > currentKey) {
+        tableContainer.insertBefore(wrapper, tables[i]);
+        inserted = true;
+        break;
+      }
+    }
+
+    if (!inserted) {
+      tableContainer.appendChild(wrapper);  // 🧩 Append last if no earlier match
+    }
+  }
+
   
 
 
   //tableContainer.insertBefore(wrapper, tableContainer.firstChild);
 
-
-  fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
-  .then(res => res.json())
-  .then(data => {
-    //if (data.teacher_name) {
-     // const ctPara = document.createElement('p');
-     // ctPara.textContent = `👩‍🏫 Class Teacher: ${data.teacher_name}`;
-     // ctPara.style.color = '#16a085';
-    //  ctPara.style.fontWeight = 'bold';
-    //  ctPara.style.margin = '0';
-    //  headerDiv.appendChild(ctPara);
-   // }
 
 fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
   .then(res => res.json())
@@ -556,9 +560,6 @@ fetch(`/get_class_teacher/?grade=${grade}&section=${section}`)
       headerDiv.appendChild(ctWrapper);
     }
   });
-
-  });
-
 }
 
 
@@ -1049,12 +1050,18 @@ function saveCell() {
     alert('❌ Failed to save routines');
   });
 } {% endcomment %}
+ 
 function saveAllRoutines() {
   // More reliable way to get CSRF token
   const csrfToken = getCSRFToken();
   
   if (!csrfToken) {
     alert('❌ CSRF token missing. Please refresh the page and try again.');
+    return;
+  }
+
+  if (Object.keys(routineData).length === 0) {
+    alert('⚠️ Please set up at least one routine before saving.');
     return;
   }
 

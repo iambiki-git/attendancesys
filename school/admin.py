@@ -21,7 +21,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(TeacherProfile)
 class TeacherProfileAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'school', 'grade', 'section', 'subjects']
+    list_display = ['id', 'user', 'school', 'grade', 'section']
 
     # def get_grades(self, obj):
     #     return ", ".join([str(grade.grade_number) for grade in obj.grades.all()])

@@ -270,26 +270,35 @@ def students_view(request):
 from django.http import JsonResponse
 import json
 
+
 def create_student(request):
     if request.method == "POST":
         try:
             full_name = request.POST.get('full_name')
-            roll_no = int(request.POST.get('roll_no'))
+            roll_no = request.POST.get('roll_no')
             grade_id = request.POST.get('grade_id')
             section_id = request.POST.get('section_id')
 
             if not all([full_name, roll_no, grade_id, section_id]):
                 return JsonResponse({'success': False, 'error': 'All fields are required'})
 
-            # Call DRF API
+            # Validate duplicate roll number in same grade-section
+            if Student.objects.filter(
+                roll_number=roll_no,
+                grade_id=grade_id,
+                section_id=section_id
+            ).exists():
+                return JsonResponse({'success': False, 'error': f'Roll number {roll_no} already exists in this class section.'})
+
+            # Prepare API call
             api_url = f"{settings.API_BASE_URL}students/"
             access_token = get_valid_access_token(request)
 
             payload = {
                 "name": full_name,
-                'roll_number': roll_no,
-                "grade": grade_id,
-                "section": section_id,
+                "roll_number": int(roll_no),
+                "grade": int(grade_id),
+                "section": int(section_id),
             }
 
             headers = {
@@ -298,7 +307,7 @@ def create_student(request):
             }
 
             response = requests.post(api_url, json=payload, headers=headers)
-            
+
             if response.status_code == 201:
                 return JsonResponse({'success': True})
             else:
@@ -1737,3 +1746,55 @@ def teacher_routine_view(request):
 #         })
 
 #     return JsonResponse(response)
+
+
+import csv
+from io import TextIOWrapper
+
+@csrf_exempt
+def import_students_csv(request):
+    school = request.user.school
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        try:
+            grade_id = request.POST.get('grade_id')
+            section_id = request.POST.get('section_id')
+
+            grade = Grade.objects.get(id=grade_id)
+            section = Section.objects.get(id=section_id)
+
+            csv_file = TextIOWrapper(request.FILES['csv_file'].file, encoding='utf-8')
+            reader = csv.DictReader(csv_file)
+
+            skipped = []
+
+            for row in reader:
+                name = row['name'].strip()
+                roll_number = row['roll_number'].strip()
+
+                # Check for duplicate roll number in same grade & section
+                if Student.objects.filter(
+                    grade=grade, section=section, roll_number=roll_number
+                ).exists():
+                    skipped.append(f"{name} (Roll {roll_number})")
+                    continue
+
+                Student.objects.create(
+                    name=name,
+                    roll_number=roll_number,
+                    grade=grade,
+                    section=section,
+                    school=school,
+                )
+
+            message = "✅ Students imported successfully."
+            if skipped:
+                message += f" ⚠️ Skipped {len(skipped)} duplicate(s): " + ", ".join(skipped[:5])
+                if len(skipped) > 5:
+                    message += "..."
+
+            return JsonResponse({'success': True, 'message': message})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
