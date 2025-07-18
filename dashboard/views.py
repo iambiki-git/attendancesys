@@ -1508,7 +1508,10 @@ def save_routine(request):
                         teacher_id = entry.get('teacher_id')
 
                         if not subject_id or not teacher_id:
-                            continue
+                            return JsonResponse({
+                                'success': False,
+                                'error': f"⚠️ Missing subject or teacher on {day}, Period {period_number} in Grade {grade.grade_number} {section.name}."
+                            })
 
                         subject = Subjects.objects.get(id=subject_id)
                         teacher = TeacherProfile.objects.get(id=teacher_id)
