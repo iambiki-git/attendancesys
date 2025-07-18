@@ -37,10 +37,18 @@
         <button type="button" onclick="addNewStudentRow()" class="bg-green-600 text-white px-4 py-2 rounded">
           Add Student
         </button>
+      
+      <input type="file" id="csvFileInput" accept=".csv" style="display: none;" />
+
+        <button type="button" onclick="triggerCSVImport()" class="bg-violet-600 text-white px-4 py-2 rounded">
+        Import CSV
+      </button>
       {% endif %}
+
     </div>
   </form>
 
+  
   
 
   <!-- Table and Empty State -->
@@ -106,6 +114,7 @@
           {% endfor %}
         </tbody>
       </table>
+      
     </div>
   {% endif %}
 </div>
@@ -572,5 +581,77 @@ function updateStudentRowInTable(studentId, name, rollNo) {
       }, 4000); // Remove after fade
     });
   });
+
+  function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+
+function triggerCSVImport() {
+  if (!gradeSelect.value || !sectionSelect.value) {
+    alert("⚠️ Please select both Grade and Section before importing.");
+    return;
+  }
+
+  console.log("📤 Triggering CSV import...");
+
+  const fileInput = document.getElementById('csvFileInput');
+  fileInput.click();
+
+  fileInput.onchange = function () {
+    const file = fileInput.files[0];
+    if (!file) {
+      console.warn("No file selected.");
+      return;
+    }
+
+    console.log("📁 File selected:", file.name);
+
+    const formData = new FormData();
+    formData.append('csv_file', file);
+    formData.append('grade_id', gradeSelect.value);
+    formData.append('section_id', sectionSelect.value);
+
+    const csrftoken = getCookie('csrftoken');
+
+    fetch("{% url 'import_students_csv' %}", {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrftoken
+      },
+      body: formData
+    })
+    .then(response => {
+      console.log("🔄 Server response:", response);
+      return response.json();
+    })
+    .then(data => {
+      console.log("✅ Server returned JSON:", data);
+      if (data.success) {
+        alert(data.message || '✅ Students imported successfully!');
+        window.location.reload();
+      } else {
+        alert('❌ Import failed: ' + (data.error || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      console.error('❌ Network error during CSV import:', error);
+      alert('❌ Network error during CSV import.');
+    });
+  };
+}
+
 </script>
 {% endblock %}
