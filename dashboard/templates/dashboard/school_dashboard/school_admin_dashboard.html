@@ -3,7 +3,34 @@
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-blue-25 to-indigo-25 p-4">
-  <div class="px-4 py-6 max-w-7xl mx-auto">
+  <div class="px-4 max-w-7xl mx-auto">
+    <!-- date and time -->
+    <div class="flex justify-end mb-6">
+      <div class="flex items-center gap-4 bg-gradient-to-r from-white via-white/80 to-white/60 backdrop-blur-lg shadow-md px-5 py-2 rounded-xl border border-gray-200">
+
+        <!-- BS Date -->
+        <div class="flex items-center gap-2 text-sm text-gray-700 font-medium">
+          <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 4h16v16H4z"/>
+            <path d="M12 6v6h4"/>
+          </svg>
+          <span>{{ today_bs_str }}</span>
+        </div>
+
+        <!-- Divider -->
+        <div class="h-5 w-px bg-gray-300"></div>
+
+        <!-- Live Time -->
+        <div class="flex items-center gap-2 text-sm text-gray-700 font-medium">
+          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 8v4l3 3"/>
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+          </svg>
+          <span id="liveTime">--:--:--</span>
+        </div>
+
+      </div>
+    </div>
 
     <!-- Stat Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -86,43 +113,33 @@
       </a>
     </div>
 
-    <!-- Today's Summary -->
-    <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <p class="font-semibold text-gray-800 mb-1">Classes Today</p>
-        <p class="text-2xl font-bold text-indigo-600">{{ total_classes_today }}</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <p class="font-semibold text-gray-800 mb-1">Students Present</p>
-        <p class="text-2xl font-bold text-green-600">{{ students_present_today }}</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm border">
-        <p class="font-semibold text-gray-800 mb-1">Teachers on Leave</p>
-        <p class="text-2xl font-bold text-red-500">{{ teachers_on_leave }}</p>
-      </div>
-    </div>
+    <!-- Announcements -->
+    <div class="mt-12">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        📢 School Announcements
+      </h2>
 
-    <!-- Upcoming Events -->
-    <div class="mt-10">
-      <h2 class="text-lg font-semibold text-gray-800 mb-3">Upcoming Events</h2>
-      <ul class="bg-white rounded-lg shadow-sm divide-y">
-        {% for event in upcoming_events %}
-          <li class="p-4 hover:bg-gray-50 flex justify-between">
-            <span>{{ event.title }}</span>
-            <span class="text-sm text-gray-500">{{ event.date|date:"M d, Y" }}</span>
-          </li>
-        {% empty %}
-          <li class="p-4 text-gray-500">No events coming up.</li>
-        {% endfor %}
-      </ul>
+      <div class="bg-white border border-gray-200 shadow-sm rounded-lg divide-y">
+        {% if announcements %}
+          {% for announcement in announcements %}
+            <div class="p-4 hover:bg-gray-50 transition flex flex-col sm:flex-row sm:justify-between">
+              <div>
+                <p class="font-medium text-gray-800">{{ announcement.title }}</p>
+                <p class="text-sm text-gray-600 mt-1">{{ announcement.description }}</p>
+              </div>
+              <div class="text-sm text-gray-500 mt-2 sm:mt-0 sm:text-right">
+                {{ announcement.created_at|date:"M d, Y" }}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="p-4 text-gray-500 text-sm">No announcements yet.</div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- Attendance Chart -->
     <div class="mt-10">
-      {% comment %} <h2 class="text-lg font-semibold text-gray-800 mb-3">Weekly Attendance Overview</h2>
-      <div class="bg-white rounded-lg p-4 shadow-sm">
-        <canvas id="attendanceChart" height="120"></canvas>
-      </div> {% endcomment %}
 
       <h2 class="text-lg font-semibold text-gray-800 mb-3">📊 Overall Attendance</h2>
       <div class="bg-white rounded-lg p-4 shadow-sm mb-10">
@@ -160,156 +177,10 @@
 
     </div>
 
-    <!-- Quick Actions -->
-    <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <a href="" class="bg-indigo-600 text-white p-4 rounded-lg text-center hover:bg-indigo-700 transition">
-        ➕ Add New Teacher
-      </a>
-      <a href="" class="bg-green-600 text-white p-4 rounded-lg text-center hover:bg-green-700 transition">
-        ⬆️ Upload Students CSV
-      </a>
-      <a href="" class="bg-yellow-500 text-white p-4 rounded-lg text-center hover:bg-yellow-600 transition">
-        📅 Build Class Routine
-      </a>
-    </div>
-
   </div>
 </div>
 
 <!-- Chart.js -->
-{% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const ctx = document.getElementById('attendanceChart').getContext('2d');
-  const attendanceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: {{ attendance_labels|safe }},  // e.g. ["Monday", "Tuesday", ...]
-      datasets: [
-        {
-          label: 'Present',
-          data: {{ present_data|safe }},
-          borderColor: '#4F46E5',
-          backgroundColor: 'rgba(79, 70, 229, 0.1)',
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Absent',
-          data: {{ absent_data|safe }},
-          borderColor: '#EF4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Late',
-          data: {{ late_data|safe }},
-          borderColor: '#F59E0B',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          fill: true,
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true }
-      },
-      plugins: {
-        legend: {
-          position: 'top'
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
-      }
-    }
-  });
-</script>  {% endcomment %}
-
-{% comment %} <script>
-  const ctx = document.getElementById('attendanceChart').getContext('2d');
-
-  const attendanceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: {{ attendance_labels|safe }},
-      datasets: [
-        {
-          label: '✅ Present',
-          data: {{ present_data|safe }},
-          borderColor: '#4F46E5',
-          backgroundColor: 'rgba(79, 70, 229, 0.1)',
-          pointBackgroundColor: '#4F46E5',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4
-        },
-        {
-          label: '❌ Absent',
-          data: {{ absent_data|safe }},
-          borderColor: '#EF4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          pointBackgroundColor: '#EF4444',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4
-        },
-        {
-          label: '⏰ Late',
-          data: {{ late_data|safe }},
-          borderColor: '#F59E0B',
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          pointBackgroundColor: '#F59E0B',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            pointStyle: 'circle'
-          }
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.raw} students`
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Number of Students'
-          },
-          ticks: {
-            stepSize: 5
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Day of the Week'
-          }
-        }
-      }
-    }
-  });
-</script> {% endcomment %}
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const labels = {{ attendance_labels|safe }};
@@ -479,6 +350,21 @@ new Chart(document.getElementById('sectionAttendanceChart'), {
     populateSections(this.value);
   });
 
+
+  // Live time update
+  function updateLiveTime() {
+    const now = new Date();
+    document.getElementById("liveTime").textContent =
+      now.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+  }
+
+  updateLiveTime();
+  setInterval(updateLiveTime, 1000);
 </script>
 
 

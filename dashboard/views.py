@@ -173,6 +173,8 @@ def school_dashboard(request):
 
     school = request.user.school
     today = datetime.today().date()
+    today_bs = nepali_datetime.date.from_datetime_date(today)
+    today_bs_str = today_bs.strftime('%K %B %d, %Y')  # e.g., 2081 Shrawan 04, 2081
 
     students = Student.objects.filter(school=school)
     teachers = TeacherProfile.objects.filter(school=school)
@@ -202,6 +204,7 @@ def school_dashboard(request):
         overall_present.append(qs.filter(status='Present').count())
         overall_absent.append(qs.filter(status='Absent').count())
         overall_late.append(qs.filter(status='Late').count())
+
 
     # === Handle GET params (if any) ===
     grade_id = request.GET.get('grade')
@@ -236,6 +239,7 @@ def school_dashboard(request):
         'total_teachers': total_teachers,
         'total_grades': total_grades,
         'today': today,
+        'today_bs_str': today_bs_str,
         'grades': grades,
         'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
 
