@@ -108,38 +108,154 @@ def logout_view(request):
     # Step 3: Redirect to login
     return redirect('/')  # Make sure 'login' name matches your login path
 
+
+# from django.http import HttpResponseForbidden
+# from datetime import datetime, timedelta
+# @login_required(login_url='/')
+# def school_dashboard(request):
+#     if not request.user.is_staff and not request.user.is_school_admin:
+#         return HttpResponseForbidden("You are not authorized to access this page.")
+    
+#     school = request.user.school
+#     students = Student.objects.filter(school=school)
+#     teachers = TeacherProfile.objects.filter(school=school)
+#     grades = Grade.objects.filter(school=school)
+#     today = datetime.today()
+
+#     total_students = students.count()
+#     total_teachers = teachers.count()
+#     total_grades = grades.count
+
+#     # Define the week range (Sunday to Friday)
+#     start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+
+#     labels = []
+#     present_data = []
+#     absent_data = []
+#     late_data = []
+
+#     for i in range(6):  # Sunday to Friday
+#         day = start_of_week + timedelta(days=i)
+#         labels.append(day.strftime('%a'))  # "Sun", "Mon", etc.
+
+#         daily_qs = Attendance.objects.filter(student__school=school, date=day)
+
+#         present_data.append(daily_qs.filter(status='Present').count())
+#         absent_data.append(daily_qs.filter(status='Absent').count())
+#         late_data.append(daily_qs.filter(status='Late').count())
+
+
+#     context = {
+#         'school': school,
+#         'total_students': total_students,
+#         'total_teachers': total_teachers,
+#         'total_grades': total_grades,
+#         'today': today,
+
+#         'attendance_labels': json.dumps(labels),
+#         'present_data': json.dumps(present_data),
+#         'absent_data': json.dumps(absent_data),
+#         'late_data': json.dumps(late_data),
+
+#     }
+
+#     return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
+
+
+from datetime import datetime, timedelta
+import json
 from django.http import HttpResponseForbidden
+
 @login_required(login_url='/')
 def school_dashboard(request):
     if not request.user.is_staff and not request.user.is_school_admin:
         return HttpResponseForbidden("You are not authorized to access this page.")
-    
+
     school = request.user.school
+    today = datetime.today().date()
+
     students = Student.objects.filter(school=school)
     teachers = TeacherProfile.objects.filter(school=school)
     grades = Grade.objects.filter(school=school)
-    today = datetime.today()
+    sections = Section.objects.filter(grade__in=grades).order_by('name')
+
+    # Group sections by grade.id → ['A', 'B', ...]
+    sections_by_grade = {
+        grade.id: list(sections.filter(grade=grade).values_list('name', flat=True))
+        for grade in grades
+    }
+        
 
     total_students = students.count()
     total_teachers = teachers.count()
-    total_grades = grades.count
-    today_attendance = Attendance.objects.filter(student__school=school, date=today)
+    total_grades = grades.count()
 
-    # present_count = today_attendance.filter(status='Present').count()
-    # absent_count = today_attendance.filter(status='Absent').count()
+    # Week Range (Sun to Fri)
+    start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+    week_days = [start_of_week + timedelta(days=i) for i in range(6)]
+    labels = [day.strftime('%a') for day in week_days]
+
+    # === Overall attendance ===
+    overall_present, overall_absent, overall_late = [], [], []
+    for day in week_days:
+        qs = Attendance.objects.filter(student__school=school, date=day)
+        overall_present.append(qs.filter(status='Present').count())
+        overall_absent.append(qs.filter(status='Absent').count())
+        overall_late.append(qs.filter(status='Late').count())
+
+    # === Handle GET params (if any) ===
+    grade_id = request.GET.get('grade')
+    section_name = request.GET.get('section')
+
+    selected_grade = Grade.objects.filter(id=grade_id).first() if grade_id else None
+
+    # Fetch the Section object by name and grade
+    selected_section = None
+    if section_name and selected_grade:
+        selected_section = Section.objects.filter(name=section_name, grade=selected_grade, school=school).first()
+
+    show_section_chart = selected_grade and section_name
+
+    section_present, section_absent, section_late = [], [], []
+
+    if show_section_chart:
+        for day in week_days:
+            qs = Attendance.objects.filter(
+                student__school=school,
+                student__grade=selected_grade,
+                student__section=selected_section,
+                date=day
+            )
+            section_present.append(qs.filter(status='Present').count())
+            section_absent.append(qs.filter(status='Absent').count())
+            section_late.append(qs.filter(status='Late').count())
 
     context = {
         'school': school,
         'total_students': total_students,
         'total_teachers': total_teachers,
-        # 'present_count': present_count,
-        # 'absent_count': absent_count,
         'total_grades': total_grades,
         'today': today,
+        'grades': grades,
+        'sections_by_grade': json.dumps(sections_by_grade, cls=DjangoJSONEncoder),
 
+        'attendance_labels': json.dumps(labels),
+
+        'overall_present_data': json.dumps(overall_present),
+        'overall_absent_data': json.dumps(overall_absent),
+        'overall_late_data': json.dumps(overall_late),
+
+        'selected_grade_id': int(grade_id) if grade_id else None,
+        'selected_section': selected_section.name if selected_section else None,
+        'section_present_data': json.dumps(section_present),
+        'section_absent_data': json.dumps(section_absent),
+        'section_late_data': json.dumps(section_late),
+        'show_section_chart': show_section_chart,
     }
 
     return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
+
+
 
 def settings_view(request):
     return render(request, 'dashboard/school_dashboard/settings.html')
