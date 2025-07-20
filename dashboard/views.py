@@ -1316,18 +1316,14 @@ def edit_subject(request, pk):
     return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
 
 
+
+from collections import OrderedDict
 def overall_attendance(request):
     school = request.user.school
 
     grades = Grade.objects.filter(school=school).order_by('grade_number')
-    sections = Section.objects.filter(school=school).order_by('name')
-
-    # section by grade
-    sections_by_grade = {}
-    for grade in grades:
-        sections_list = list(sections.filter(grade=grade).values('id', 'name'))
-        sections_by_grade[grade.id] = sections_list
-
+    all_sections = Section.objects.filter(school=school).order_by('name')
+    sections = all_sections
 
     # Get filters from GET request
     grade_id = request.GET.get('grade')
@@ -1335,8 +1331,19 @@ def overall_attendance(request):
     date_range = request.GET.get('date_range', 'today')  # default: today
 
     start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')   
+    end_date = request.GET.get('end_date')  
 
+    # Only filter visible sections for dropdown if a grade is selected
+    if grade_id:
+        sections = all_sections.filter(grade_id=grade_id)
+    else:
+        sections = Section.objects.none()
+
+    # section by grade (corrected)
+    sections_by_grade = {}
+    for grade in grades:
+        sections_list = list(all_sections.filter(grade=grade).values('id', 'name'))
+        sections_by_grade[grade.id] = sections_list 
 
     attendance = Attendance.objects.filter(student__school=school).order_by('-date')
 
@@ -1362,11 +1369,6 @@ def overall_attendance(request):
     elif date_range == "custom" and start_date and end_date:
         attendance = attendance.filter(date__range=(start_date, end_date))
 
-    # print(grade_id)
-    # print(section_id)
-    # print(date_range)
-    # print(start_date)
-    # print(end_date)
 
     #Counts
     total_count = attendance.count()     
@@ -1382,6 +1384,15 @@ def overall_attendance(request):
         late_percent = round((late_count / total_count) * 100, 1)
     else:
         present_percent = absent_percent = late_percent = 0
+
+    
+    # Weekly data (7 days)
+    weekly_data = OrderedDict()
+    for i in range(6, -1, -1):  # Last 7 days
+        day = today - timedelta(days=i)
+        day_label = day.strftime('%a')  # Mon, Tue...
+        count = attendance.filter(date=day).count()
+        weekly_data[day_label] = count
 
     context = {
         'present_count': present_count,
@@ -1402,8 +1413,12 @@ def overall_attendance(request):
         'selected_grade': grade_id,
         'selected_section': section_id,
 
+        'weekly_data': list(weekly_data.items()),  # list of tuples (label, count)
+
+
     }
     return render(request, 'dashboard/school_dashboard/overall_attendance.html', context)
+
 
 from django.http import HttpResponseBadRequest
 @login_required
@@ -1412,9 +1427,14 @@ def attendance_details(request):
     status = request.GET.get("status")
     grade_id = request.GET.get("grade")
     section_id = request.GET.get("section")
-    date_range = request.GET.get("date_range", "today")
+    date_range = request.GET.get("date_range")
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
+
+    #Handle empty strings and "None"
+    if grade_id in ["", "None"]: grade_id = None
+    if section_id in ["", "None"]: section_id = None
+    if date_range in ["", "None", None]: date_range = "today"
 
     if status not in ['present', 'absent', 'late']:
         return HttpResponseBadRequest("Invalid status")
@@ -1424,31 +1444,42 @@ def attendance_details(request):
         student__school=school
     )
 
+    # Optional grade/section filter
     if grade_id:
         attendance_qs = attendance_qs.filter(student__grade_id=grade_id)
     if section_id:
         attendance_qs = attendance_qs.filter(student__section_id=section_id)
 
     today = timezone.now().date()
-    if date_range == "today":
-        attendance_qs = attendance_qs.filter(date=today)
-    elif date_range == "week":
-        week_start = today - timedelta(days=today.weekday())
-        attendance_qs = attendance_qs.filter(date__range=(week_start, today))
-    elif date_range == "month":
-        month_start = today.replace(day=1)
-        attendance_qs = attendance_qs.filter(date__range=(month_start, today))
-    elif date_range == "custom" and start_date and end_date:
-        try:
-            start = datetime.strptime(start_date, "%Y-%m-%d").date()
-            end = datetime.strptime(end_date, "%Y-%m-%d").date()
-            attendance_qs = attendance_qs.filter(date__range=(start, end))
-        except ValueError:
-            return HttpResponseBadRequest("Invalid date format")
 
-    return render(request, 'dashboard/school_dashboard/overall_attendance.html', {
-        "attendance_list": attendance_qs.select_related('student').order_by('student__name'),
-        "status": status.capitalize()
+    try:
+        if date_range == "today":
+            attendance_qs = attendance_qs.filter(date=today)
+
+        elif date_range == "week":
+            week_start = today - timedelta(days=today.weekday())
+            attendance_qs = attendance_qs.filter(date__range=(week_start, today))
+
+        elif date_range == "month":
+            month_start = today.replace(day=1)
+            attendance_qs = attendance_qs.filter(date__range=(month_start, today))
+
+        elif date_range == "custom":
+            if start_date and end_date:
+                start = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end = datetime.strptime(end_date, "%Y-%m-%d").date()
+                attendance_qs = attendance_qs.filter(date__range=(start, end))
+            # else: don’t filter by date
+        else:
+            # No date range passed → fallback to dashboard default (e.g. today)
+            attendance_qs = attendance_qs.filter(date=today)
+    except Exception as e:
+        return HttpResponseBadRequest(f"Date error: {str(e)}")
+
+    attendance_qs = attendance_qs.select_related('student').order_by('-date')[:100]
+
+    return render(request, 'dashboard/school_dashboard/attendance_modal_list.html', {
+        "attendance_list": attendance_qs,
     })
 
 

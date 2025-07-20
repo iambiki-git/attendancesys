@@ -35,7 +35,7 @@
         <!-- Section Dropdown (dynamic) -->
           <div>
           <label class="block text-xs font-medium text-gray-500 mb-1">Section</label>
-          <select id="section-select" name="section"
+         <select id="section-select" name="section"
                   class="w-full p-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-200 focus:border-blue-300 bg-white">
             <option value="">All Sections</option>
             {% for section in sections %}
@@ -44,6 +44,7 @@
               </option>
             {% endfor %}
           </select>
+
         </div>
         <!-- Date Range -->
         <div>
@@ -122,7 +123,13 @@
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
       </div>
-      <div>
+      <div onclick="openDetails(this, 'absent')"
+          class="cursor-pointer"
+          data-grade="{{ selected_grade }}"
+          data-section="{{ selected_section }}"
+          data-date-range="{{ selected_range }}"
+          data-start-date="{{ start_date }}"
+          data-end-date="{{ end_date }}">
         <div class="text-sm text-gray-500">Absent Today <span class="font-bold text-xs">({{ absent_count }})</span></div>
 
         <div class="text-2xl font-light mt-1">
@@ -147,7 +154,13 @@
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
         </svg>
       </div>
-      <div>
+      <div onclick="openDetails(this, 'late')"
+          class="cursor-pointer"
+          data-grade="{{ selected_grade }}"
+          data-section="{{ selected_section }}"
+          data-date-range="{{ selected_range }}"
+          data-start-date="{{ start_date }}"
+          data-end-date="{{ end_date }}">
         <div class="text-sm text-gray-500">Late Arrivals <span class="font-bold text-xs">({{ late_count }})</span></div>
 
         <div class="text-2xl font-light mt-1">
@@ -316,35 +329,80 @@
       </table>
     </div>
   </div>
+  
 </div>
 
-<div>
-  {% if attendance_list %}
-    <ul class="divide-y">
-      {% for att in attendance_list %}
-        <li class="py-2">
-          <span class="font-medium">{{ att.student.first_name }} {{ att.student.last_name }}</span>
-          <span class="text-sm text-gray-500">({{ att.date }})</span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-gray-500 text-sm">No students found for this filter.</p>
-  {% endif %}
-</div>
 
 {% comment %} modal {% endcomment %}
-<div id="attendance-modal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50 flex">
-  <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6">
+  {% comment %} <div id="attendance-modal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50 flex">
+    <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 id="modal-title" class="text-lg font-semibold text-gray-700">Details</h2>
+        <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-700">&times;</button>
+      </div>
+      <div id="modal-content" class="text-sm text-gray-600">
+        Loading...
+      </div>
+    </div>
+  </div> {% endcomment %}
+
+<div id="attendance-modal" class="fixed inset-0 hidden z-50 backdrop-blur-sm">
+  <div id="modal-box" class="absolute bg-white w-[380px] rounded-xl shadow-2xl p-5 border border-gray-100"
+       style="will-change: transform, opacity;">
+    
+    <!-- Modern arrow with shadow -->
+    <div id="modal-arrow" class="absolute top-full w-0 h-0 border-l-[10px] border-r-[10px] border-t-[10px] 
+                                border-transparent border-t-white left-1/2 -translate-x-1/2 
+                                filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.05)]"></div>
+
+    <!-- Header -->
     <div class="flex justify-between items-center mb-4">
-      <h2 id="modal-title" class="text-lg font-semibold text-gray-700">Details</h2>
-      <button onclick="closeModal()" class="text-gray-400 hover:text-gray-700">&times;</button>
+      <h2 id="modal-title" class="text-lg font-semibold text-gray-800"></h2>
+      <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
     </div>
-    <div id="modal-content" class="text-sm text-gray-600">
-      Loading...
-    </div>
+
+    <!-- Content area -->
+    <div id="modal-content" class="text-sm text-gray-600"></div>
   </div>
 </div>
+
+
+
+<style>
+  .animate-modal-in {
+    animation: modalIn 0.3s ease-out forwards;
+  }
+  
+  .animate-modal-out {
+    animation: modalOut 0.2s ease-in forwards;
+  }
+  
+  @keyframes modalIn {
+    0% {
+      transform: translateY(10px) scale(0.95);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes modalOut {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(10px) scale(0.95);
+      opacity: 0;
+    }
+  }
+</style>
 
 <script>
   const sectionsByGrade = {{ sections_by_grade|safe }};
@@ -352,18 +410,19 @@
   const gradeSelect = document.getElementById("grade-select");
 
   gradeSelect.addEventListener("change", function () {
-    const selectedGradeId = this.value;
-    sectionSelect.innerHTML = '<option value="">All Sections</option>'; // reset
+  const selectedGradeId = this.value;
+  sectionSelect.innerHTML = '<option value="">All Sections</option>'; // reset
 
-    if (selectedGradeId && sectionsByGrade[selectedGradeId]) {
-      sectionsByGrade[selectedGradeId].forEach(section => {
-        const option = document.createElement("option");
-        option.value = section.id;
-        option.textContent = section.name;
-        sectionSelect.appendChild(option);
-      });
-    }
-  });
+  if (selectedGradeId && sectionsByGrade[selectedGradeId]) {
+    sectionsByGrade[selectedGradeId].forEach(section => {
+      const option = document.createElement("option");
+      option.value = section.id;
+      option.textContent = section.name;
+      sectionSelect.appendChild(option);
+    });
+  }
+});
+
 
 
 
@@ -380,48 +439,163 @@
   });
 
 
-  function openDetails(el, status) {
-    console.log('status', status);
-    const modal = document.getElementById("attendance-modal");
-    const title = document.getElementById("modal-title");
-    const content = document.getElementById("modal-content");
+{% comment %} function openDetails(el, status) {
+  const modal = document.getElementById("attendance-modal");
+  const title = document.getElementById("modal-title");
+  const content = document.getElementById("modal-content");
 
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+  modal.classList.remove("hidden");
 
-    title.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Attendance Details`;
+  title.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Attendance Details`;
 
-    const grade = el.dataset.grade;
-    const section = el.dataset.section;
-    const dateRange = el.dataset.dateRange;
-    const startDate = el.dataset.startDate;
-    const endDate = el.dataset.endDate;
+  const grade = el.dataset.grade;
+  const section = el.dataset.section;
+  const dateRange = el.dataset.dateRange;
+  const startDate = el.dataset.startDate;
+  const endDate = el.dataset.endDate;
 
-    const params = new URLSearchParams({
-      status,
-      grade,
-      section,
-      date_range: dateRange,
-      start_date: startDate,
-      end_date: endDate
-    });
+  const params = new URLSearchParams({ status });
 
-    fetch("{% url 'attendance_details' %}?" + params.toString())
-      .then(response => response.text())
-      .then(data => {
-        content.innerHTML = data;
-      })
-      .catch(() => {
-        content.innerHTML = "Failed to load data.";
-      });
+  if (grade) params.append("grade", grade);
+  if (section) params.append("section", section);
+  if (dateRange) params.append("date_range", dateRange);
+
+  if (dateRange === "custom") {
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
   }
 
+  content.innerHTML = "Loading...";
 
-  function closeModal() {
+  fetch("{% url 'attendance_details' %}?" + params.toString())
+    .then(response => response.text())
+    .then(data => {
+      content.innerHTML = data;
+    })
+    .catch(() => {
+      content.innerHTML = "Failed to load data.";
+    });
+} {% endcomment %}
+
+{% comment %} function closeModal() {
     const modal = document.getElementById("attendance-modal");
     modal.classList.add("hidden");
-    modal.classList.remove("flex");
-  }
+   // modal.classList.remove("flex");
+} {% endcomment %}
+
+function openDetails(el, status) {
+  const modal = document.getElementById("attendance-modal");
+  const modalBox = document.getElementById("modal-box");
+  const modalArrow = document.getElementById("modal-arrow");
+  const title = document.getElementById("modal-title");
+  const content = document.getElementById("modal-content");
+
+  // Get position of clicked element
+  const rect = el.getBoundingClientRect();
+  const boxCenter = rect.left + rect.width / 2;
+  const boxTop = rect.top;
+
+  // Set modal dimensions
+  const modalWidth = 380; // Compact modern width
+  const modalHeight = 320;
+  const spacing = 8;
+
+  // Calculate position (centered horizontally above element)
+  let modalLeft = boxCenter - modalWidth / 2;
+  const modalTop = boxTop - modalHeight - spacing;
+
+  // Ensure modal stays within viewport
+  modalLeft = Math.max(16, Math.min(modalLeft, window.innerWidth - modalWidth - 16));
+
+  // Set position
+  modalBox.style.left = `${modalLeft}px`;
+  modalBox.style.top = `${modalTop}px`;
+
+  // Position arrow
+  modalArrow.style.left = `${boxCenter - modalLeft}px`;
+
+  // Set title
+  title.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Attendance`;
+
+  // Prepare data for API call
+  const params = new URLSearchParams({ status });
+  ['grade', 'section', 'dateRange', 'startDate', 'endDate'].forEach(param => {
+    if (el.dataset[param]) params.append(param.toLowerCase().replace('range', '_range'), el.dataset[param]);
+  });
+
+  // Show elegant loading state
+  content.innerHTML = `
+    <div class="h-[200px] flex flex-col items-center justify-center">
+      <div class="relative w-12 h-12 mb-4">
+        <div class="absolute inset-0 rounded-full bg-blue-100 animate-ping opacity-75"></div>
+        <div class="absolute inset-1 rounded-full bg-blue-500"></div>
+      </div>
+      <p class="text-gray-500 font-medium">Gathering records...</p>
+    </div>
+  `;
+
+  // Prepare modal for animation
+  modalBox.style.transform = 'translateY(8px) scale(0.98)';
+  modalBox.style.opacity = '0';
+  modalBox.style.transition = 'none';
+  
+  // Show modal
+  modal.classList.remove('hidden');
+  modal.style.backgroundColor = 'rgba(0,0,0,0)';
+
+  // Animate in
+  requestAnimationFrame(() => {
+    // Backdrop fade in
+    modal.style.transition = 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.4)';
+
+    // Modal spring animation
+    modalBox.style.transition = 'all 0.4s cubic-bezier(0.2, 0, 0.1, 1.5)';
+    modalBox.style.transform = 'translateY(0) scale(1)';
+    modalBox.style.opacity = '1';
+  });
+
+  // Fetch data
+  fetch("{% url 'attendance_details' %}?" + params.toString())
+    .then(res => res.text())
+    .then(data => {
+      content.innerHTML = data;
+      // Add slight content fade-in
+      content.style.opacity = '0';
+      content.style.transition = 'opacity 0.2s ease-out';
+      setTimeout(() => content.style.opacity = '1', 10);
+    })
+    .catch(() => {
+      content.innerHTML = `
+        <div class="h-[200px] flex flex-col items-center justify-center text-red-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p class="text-sm font-medium">Couldn't load details</p>
+          <button onclick="openDetails(${JSON.stringify(el)}, '${status}')" class="mt-2 text-sm text-blue-500 hover:text-blue-700 transition-colors">
+            Try again
+          </button>
+        </div>
+      `;
+    });
+}
+
+function closeModal() {
+  const modal = document.getElementById("attendance-modal");
+  const modalBox = document.getElementById("modal-box");
+
+  // Animate out
+  modal.style.backgroundColor = 'rgba(0,0,0,0)';
+  modalBox.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 1, 1)';
+  modalBox.style.transform = 'translateY(8px) scale(0.98)';
+  modalBox.style.opacity = '0';
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    // Reset styles for next open
+    modalBox.style.transition = 'none';
+  }, 200);
+}
 
 </script>
 

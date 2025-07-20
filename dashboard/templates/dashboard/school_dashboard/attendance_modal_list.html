@@ -1,0 +1,30 @@
+{% if attendance_list %}
+<ul class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+  {% for att in attendance_list %}
+    <li class="py-3 px-2 flex justify-between items-center hover:bg-gray-50 transition-colors">
+      <!-- Student Info -->
+      <div class="flex flex-col text-sm">
+        <span class="font-medium text-gray-800">
+          {{ att.student.name }}
+          <span class="text-xs text-gray-400 font-normal"> • Roll {{ att.student.roll_number }}</span>
+        </span>
+        <span class="text-xs text-gray-500">
+          Grade {{ att.student.grade.grade_number }}{% if att.student.section %}{{ att.student.section.name }}{% endif %} • {{ att.date }}
+        </span>
+      </div>
+
+      <!-- Status Badge -->
+      <span class="text-xs font-medium px-2.5 py-1 rounded-full capitalize
+        {% if att.status == 'Present' %} bg-green-100 text-green-700
+        {% elif att.status == 'Absent' %} bg-red-100 text-red-700
+        {% elif att.status == 'Late' %} bg-yellow-100 text-yellow-700
+        {% endif %}
+      ">
+        {{ att.status }}
+      </span>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-gray-500 px-3 py-4 text-center">No students found for this filter.</p>
+{% endif %}
