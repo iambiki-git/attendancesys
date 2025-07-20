@@ -1394,6 +1394,7 @@ def overall_attendance(request):
         count = attendance.filter(date=day).count()
         weekly_data[day_label] = count
 
+
     context = {
         'present_count': present_count,
         'absent_count': absent_count,
@@ -1414,8 +1415,6 @@ def overall_attendance(request):
         'selected_section': section_id,
 
         'weekly_data': list(weekly_data.items()),  # list of tuples (label, count)
-
-
     }
     return render(request, 'dashboard/school_dashboard/overall_attendance.html', context)
 

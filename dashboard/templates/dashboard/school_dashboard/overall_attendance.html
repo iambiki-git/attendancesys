@@ -182,7 +182,7 @@
   </div>
 
   <!-- Visual Data Section -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+  {% comment %} <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
     <!-- Attendance Trend -->
     <div class="bg-white p-5 rounded-xl shadow-xs border border-gray-100">
       <div class="flex justify-between items-center mb-4">
@@ -252,7 +252,22 @@
         </div>
       </div>
     </div>
+  </div> {% endcomment %}
+  <div class="bg-gradient-to-r from-blue-50 to-white border border-blue-100 p-6 rounded-xl shadow-sm mb-8">
+  <div class="flex items-center justify-between flex-col sm:flex-row gap-4">
+    <div>
+      <h3 class="text-base font-semibold text-blue-800">Want to view individual student attendance?</h3>
+      <p class="text-sm text-gray-600 mt-1">
+        Explore detailed attendance history for each student including presence, absences, and late marks.
+      </p>
+    </div>
+    <a href=""
+       class="inline-block mt-2 sm:mt-0 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+      View Individual Records
+    </a>
   </div>
+</div>
+
 
   <!-- Recent Attendance Table -->
   <div class="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
@@ -346,7 +361,7 @@
     </div>
   </div> {% endcomment %}
 
-<div id="attendance-modal" class="fixed inset-0 hidden z-50 backdrop-blur-sm">
+<div id="attendance-modal" class="fixed inset-0 hidden z-50 backdrop-blur-sm" onclick="handleBackdropClick(event)">
   <div id="modal-box" class="absolute bg-white w-[380px] rounded-xl shadow-2xl p-5 border border-gray-100"
        style="will-change: transform, opacity;">
     
@@ -369,8 +384,6 @@
     <div id="modal-content" class="text-sm text-gray-600"></div>
   </div>
 </div>
-
-
 
 <style>
   .animate-modal-in {
@@ -422,9 +435,6 @@
     });
   }
 });
-
-
-
 
   // date range selector 
   const dateSelect = document.getElementById('date-range-select');
@@ -483,7 +493,17 @@
    // modal.classList.remove("flex");
 } {% endcomment %}
 
+
+let currentScrollPosition = 0;
 function openDetails(el, status) {
+  // Store current scroll position
+  currentScrollPosition = window.pageYOffset;
+  // Lock body scroll
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${currentScrollPosition}px`;
+  document.body.style.width = '100%';
+
   const modal = document.getElementById("attendance-modal");
   const modalBox = document.getElementById("modal-box");
   const modalArrow = document.getElementById("modal-arrow");
@@ -581,6 +601,15 @@ function openDetails(el, status) {
 }
 
 function closeModal() {
+  // Restore body scroll
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  
+  // Restore scroll position
+  window.scrollTo(0, currentScrollPosition);
+
   const modal = document.getElementById("attendance-modal");
   const modalBox = document.getElementById("modal-box");
 
@@ -596,6 +625,16 @@ function closeModal() {
     modalBox.style.transition = 'none';
   }, 200);
 }
+
+function handleBackdropClick(event) {
+  const modalBox = document.getElementById("modal-box");
+
+  // If the clicked element is NOT inside the modal box, close the modal
+  if (!modalBox.contains(event.target)) {
+    closeModal();
+  }
+}
+
 
 </script>
 
