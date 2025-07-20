@@ -922,6 +922,8 @@ def update_teacher(request, teacher_id):
 
 from django.utils import timezone
 import nepali_datetime
+from collections import Counter
+
 def teacher_dashboard(request):
     teacher = request.user.teacherprofile
     grade = teacher.grade
@@ -933,6 +935,34 @@ def teacher_dashboard(request):
 
     nepali_weekday = today_bs.strftime("%A")
     nepali_date_str = today_bs.strftime("%B %d, %Y")
+
+    start_of_week = today_ad - timedelta(days=(today_ad.weekday() + 1) % 7)  # Sunday
+    week_dates = [start_of_week + timedelta(days=i) for i in range(6)]  # Sunday to Friday
+
+    weekly_attendance_summary = []
+    for date in week_dates:
+        day_attendance = Attendance.objects.filter(
+            student__grade=grade,
+            student__section=section,
+            student__school=teacher.school,
+            date=date
+        )
+        counts = Counter([a.status for a in day_attendance])
+        weekly_attendance_summary.append({
+            'date': nepali_datetime.date.from_datetime_date(date).strftime('%A'),  # e.g., 'आइतबार'
+            'present': counts.get('Present', 0) + counts.get('Late', 0),
+            'absent': counts.get('Absent', 0),
+            'late': counts.get('Late', 0),
+        })
+
+        #Todays classes
+        today = datetime.today().strftime('%A')
+        teacher_profile = TeacherProfile.objects.get(user=request.user)
+        routines = Routine.objects.filter(
+            teacher=teacher_profile,
+            day=today
+        ).order_by('period_number')
+
 
     # Step 1: Filter records for the month
     monthly_attendance = Attendance.objects.filter(
@@ -996,7 +1026,7 @@ def teacher_dashboard(request):
     present_percent = round((present_count / students_count) * 100, 2) if students_count > 0 else 0
     late_percent = round((late_count / students_count) * 100, 2) if students_count > 0 else 0
     absent_percent = round((absent_count / students_count) * 100, 2) if students_count > 0 else 0
-
+    
     context = {
         'students_count': students_count,
         'present_count': present_count,
@@ -1013,98 +1043,11 @@ def teacher_dashboard(request):
         'current_date_bs': today_bs,
         'nepali_weekday': nepali_weekday,
         'nepali_date_str': nepali_date_str,
+        'weekly_attendance_summary': weekly_attendance_summary,
+        'todays_classes': routines
+
     }
     return render(request, 'dashboard/teachers/teacher_dashboard.html', context)
-
-
-
-# from datetime import date
-# def attendance(request):
-#     teacher = request.user.teacherprofile
-#     grade = teacher.grade
-#     section = teacher.section
-#     today = timezone.now().date()
-
-#     students = Student.objects.filter(
-#         grade = grade,
-#         section = section,
-#         school = teacher.school
-#     ).order_by('roll_number')
-
-#     # Check if any attendance exists for today
-#     attendance_submitted = Attendance.objects.filter(
-#         student__grade=grade,
-#         student__section=section,
-#         student__school=teacher.school,
-#         date=today
-#     ).exists()
-
-#     context = {
-#         'students': students,
-#         'current_date': date.today(),
-#         'attendance_submitted': attendance_submitted,
-
-#     }
-#     return render(request, 'dashboard/teachers/attendance_page.html', context)
-
-
-# from django.views.decorators.http import require_POST
-# from datetime import datetime
-# @require_POST
-# def submit_attendance(request):
-#     access_token = get_valid_access_token(request)
-#     API_URL = f"{settings.API_BASE_URL}attendance/"
-#     HEADERS = {
-#         'Authorization': f'Bearer {access_token}',
-#         'Content-Type': 'application/json',
-#     }
-
-#     try:
-#         attendance_date = request.POST.get("attendance_date", "").strip()
-#         if not attendance_date:
-#             attendance_date = datetime.now().strftime('%Y-%m-%d')
-
-#         for key, value in request.POST.items():
-#             if key.startswith('student_'):
-#                 student_id = key.split('_')[1]
-                
-#                 payload = {
-#                     "student": str(student_id),
-#                     "date": attendance_date,
-#                     "status": value,
-#                     "notes": request.POST.get(f"note_{student_id}", "").strip() 
-#                            if value in ["Absent", "Late"] else ""
-#                 }
-
-#                 # Use PATCH for existing records, POST for new ones
-#                 method = 'PATCH' if is_existing_record(student_id, attendance_date) else 'POST'
-#                 endpoint = f"{API_URL}{student_id}/{attendance_date}/" if method == 'PATCH' else API_URL
-
-#                 response = requests.request(
-#                     method,
-#                     endpoint,
-#                     headers=HEADERS,
-#                     json=payload,
-#                     timeout=5
-#                 )
-
-#                 if response.status_code not in [200, 201]:
-#                     error_data = response.json()
-#                     messages.error(request, f"Error for student {student_id}: {error_data}")
-#                     return redirect('attendance')
-
-#         messages.success(request, "Attendance saved successfully!")
-#         return redirect('attendance')
-
-#     except requests.exceptions.RequestException as e:
-#         messages.error(request, f"Connection failed: {str(e)}")
-#         return redirect('attendance')
-
-# def is_existing_record(student_id, date):
-#     """Check if record exists (you might need to call your API for this)"""
-#     # This is a placeholder - implement based on your API
-#     # Example implementation might call GET /attendance/{student_id}/{date}/
-#     return False  # Default to False if you can't check
 
 
 from django.utils import timezone
@@ -1240,14 +1183,6 @@ def subjects(request):
     }
     return render(request, 'dashboard/school_dashboard/subjects.html', context)
 
-# def subjects(request):
-#     subjects = Subjects.objects.filter(school=request.user.school)
-
-#     context = {
-#         'subjects': subjects,
-#     }
-#     return render(request, 'dashboard/school_dashboard/subjects.html', context)
-
 
 def add_subject(request):
     if request.method != 'POST':
@@ -1382,7 +1317,140 @@ def edit_subject(request, pk):
 
 
 def overall_attendance(request):
-    return render(request, 'dashboard/school_dashboard/overall_attendance.html')
+    school = request.user.school
+
+    grades = Grade.objects.filter(school=school).order_by('grade_number')
+    sections = Section.objects.filter(school=school).order_by('name')
+
+    # section by grade
+    sections_by_grade = {}
+    for grade in grades:
+        sections_list = list(sections.filter(grade=grade).values('id', 'name'))
+        sections_by_grade[grade.id] = sections_list
+
+
+    # Get filters from GET request
+    grade_id = request.GET.get('grade')
+    section_id = request.GET.get('section')
+    date_range = request.GET.get('date_range', 'today')  # default: today
+
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')   
+
+
+    attendance = Attendance.objects.filter(student__school=school).order_by('-date')
+
+    # Apply filters
+    if grade_id:
+        attendance = attendance.filter(student__grade_id=grade_id)
+    if section_id:
+        attendance = attendance.filter(student__section_id=section_id)
+    
+    # Date filter
+    today = timezone.now().date()
+    if date_range == "today":
+        attendance = attendance.filter(date=today)
+
+    elif date_range == "week":
+        week_start = today - timedelta(days=today.weekday())
+        attendance = attendance.filter(date__range=(week_start, today))
+
+    elif date_range == "month":
+        month_start = today.replace(day=1)
+        attendance = attendance.filter(date__range=(month_start, today))
+
+    elif date_range == "custom" and start_date and end_date:
+        attendance = attendance.filter(date__range=(start_date, end_date))
+
+    # print(grade_id)
+    # print(section_id)
+    # print(date_range)
+    # print(start_date)
+    # print(end_date)
+
+    #Counts
+    total_count = attendance.count()     
+    # Count by status
+    present_count = attendance.filter(status='Present').count()
+    absent_count = attendance.filter(status='Absent').count()
+    late_count = attendance.filter(status='Late').count()
+
+    # Compute percentages safely
+    if total_count > 0:
+        present_percent = round((present_count / total_count) * 100, 1)
+        absent_percent = round((absent_count / total_count) * 100, 1)
+        late_percent = round((late_count / total_count) * 100, 1)
+    else:
+        present_percent = absent_percent = late_percent = 0
+
+    context = {
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'late_count': late_count,
+
+        'present_percent': present_percent,
+        'absent_percent': absent_percent,
+        'late_percent': late_percent,
+
+        'grades': grades,
+        'sections': sections,
+        'sections_by_grade': sections_by_grade,
+
+        'selected_range': date_range,
+        'start_date': start_date,
+        'end_date': end_date,
+        'selected_grade': grade_id,
+        'selected_section': section_id,
+
+    }
+    return render(request, 'dashboard/school_dashboard/overall_attendance.html', context)
+
+from django.http import HttpResponseBadRequest
+@login_required
+def attendance_details(request):
+    school = request.user.school
+    status = request.GET.get("status")
+    grade_id = request.GET.get("grade")
+    section_id = request.GET.get("section")
+    date_range = request.GET.get("date_range", "today")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if status not in ['present', 'absent', 'late']:
+        return HttpResponseBadRequest("Invalid status")
+
+    attendance_qs = Attendance.objects.filter(
+        status__iexact=status.capitalize(),
+        student__school=school
+    )
+
+    if grade_id:
+        attendance_qs = attendance_qs.filter(student__grade_id=grade_id)
+    if section_id:
+        attendance_qs = attendance_qs.filter(student__section_id=section_id)
+
+    today = timezone.now().date()
+    if date_range == "today":
+        attendance_qs = attendance_qs.filter(date=today)
+    elif date_range == "week":
+        week_start = today - timedelta(days=today.weekday())
+        attendance_qs = attendance_qs.filter(date__range=(week_start, today))
+    elif date_range == "month":
+        month_start = today.replace(day=1)
+        attendance_qs = attendance_qs.filter(date__range=(month_start, today))
+    elif date_range == "custom" and start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+            attendance_qs = attendance_qs.filter(date__range=(start, end))
+        except ValueError:
+            return HttpResponseBadRequest("Invalid date format")
+
+    return render(request, 'dashboard/school_dashboard/overall_attendance.html', {
+        "attendance_list": attendance_qs.select_related('student').order_by('student__name'),
+        "status": status.capitalize()
+    })
+
 
 
 import csv
