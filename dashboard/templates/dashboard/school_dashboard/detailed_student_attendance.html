@@ -1,0 +1,285 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">Student Attendance Analytics</h1>
+    <p class="text-sm text-gray-500 mt-1">View detailed attendance history for each student. Filter by grade, section or name.</p>
+  </div>
+
+
+    <!-- Filter Bar -->
+    <div class="flex justify-end">
+        <form id="filter-form" method="get"
+            class="bg-white rounded-xl px-6 py-4 flex items-end gap-6 w-full max-w-3xl justify-end transition-all duration-300">
+
+        <!-- Date Range Dropdown -->
+        <div class="flex flex-col">
+        <label for="date-range-select" class="text-sm font-medium text-gray-600 mb-1">Date Range</label>
+        <select name="date_range" id="date-range-select"
+            class="text-sm px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <option value="today" {% if date_range == "today" %}selected{% endif %}>Today</option>
+            <option value="week" {% if date_range == "week" %}selected{% endif %}>This Week</option>
+            <option value="month" {% if date_range == "month" %}selected{% endif %}>This Month</option>
+            <option value="custom" {% if date_range == "custom" %}selected{% endif %}>Custom Range</option>
+        </select>
+        </div>
+
+        <!-- Custom Date Fields -->
+        <div id="custom-date-fields" class="flex items-end gap-4 {% if date_range != 'custom' %}hidden{% endif %}">
+        <div class="flex flex-col">
+            <label for="start_date" class="text-sm font-medium text-gray-600 mb-1">Start</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}"
+            class="text-sm px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" />
+        </div>
+        <div class="flex flex-col">
+            <label for="end_date" class="text-sm font-medium text-gray-600 mb-1">End</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}"
+            class="text-sm px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" />
+        </div>
+        </div>
+
+        </form>
+    </div>
+
+    
+  <!-- Table Card -->
+  {% comment %} <div class="bg-white border rounded-2xl shadow-md overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-800">
+      <thead class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase">
+        <tr>
+          <th class="px-4 py-3">S.N.</th>
+          <th class="px-4 py-3">Student Name</th>
+          <th class="px-4 py-3">Grade</th>
+          <th class="px-4 py-3">Section</th>
+          <th class="px-4 py-3">Total Days</th>
+          <th class="px-4 py-3">Present</th>
+          <th class="px-4 py-3">Absent</th>
+          <th class="px-4 py-3">Late</th>
+          <th class="px-4 py-3">Attendance %</th>
+          <th class="px-4 py-3">Details</th>
+        </tr>
+
+        <!-- Filter Row -->
+        <tr class="bg-white border-t text-gray-700 text-sm">
+          <td></td>
+          <td><input type="text" placeholder="Search name" class="w-full border px-2 py-1 rounded text-sm placeholder-gray-400" /></td>
+          <td><input type="text" placeholder="Grade" class="w-full border px-2 py-1 rounded text-sm placeholder-gray-400" /></td>
+          <td><input type="text" placeholder="Section" class="w-full border px-2 py-1 rounded text-sm placeholder-gray-400" /></td>
+          <td colspan="6"></td>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% if students %}
+        {% for student in students %}
+        <tr class="border-t hover:bg-gray-50 transition">
+          <td class="px-4 py-3">{{ forloop.counter }}</td>
+          <td class="px-4 py-3 font-medium">{{ student.name }}</td>
+          <td class="px-4 py-3">{{ student.grade }}</td>
+          <td class="px-4 py-3">{{ student.section }}</td>
+          <td class="px-4 py-3">{{ total_days }}</td>
+          <td class="px-4 py-3">{{ student.present_days }}</td>
+          <td class="px-4 py-3">{{ student.absent_days }}</td>
+          <td class="px-4 py-3">{{ student.late_days }}</td>
+          <td class="px-4 py-3 font-semibold {% if student.percentage < 75 %}text-red-600{% else %}text-green-600{% endif %}">
+            {{ student.percentage }}%
+          </td>
+          <td class="px-4 py-3">
+            <button onclick="openDetails('aarav')" class="text-blue-600 hover:underline text-xs font-medium">View</button>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr class="border-t">
+          <td colspan="10" class="px-4 py-4 text-center text-gray-500">No records found</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div> {% endcomment %}
+  <div class="bg-white border rounded-2xl shadow-md overflow-x-auto">
+  <table class="w-full text-sm text-left text-gray-800">
+    <thead class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase">
+        <tr>
+            <th class="px-4 py-3">S.N.</th>
+
+            <!-- Name filter -->
+            <th class="px-4 py-3 cursor-pointer" onclick="activateFilter('name')">
+            <span id="name-label">Student Name</span>
+            <input id="name-input" type="text" placeholder="Search"
+                    class="hidden mt-1 w-32 text-xs border px-2 py-1 rounded placeholder-gray-400" />
+            </th>
+
+            <!-- Grade filter -->
+            <th class="px-4 py-3 cursor-pointer" onclick="activateFilter('grade')">
+            <span id="grade-label">Grade</span>
+            <input id="grade-input" type="text" placeholder="Grade"
+                    class="hidden mt-1 w-32 text-xs border px-2 py-1 rounded placeholder-gray-400" />
+            </th>
+
+            <!-- Section filter -->
+            <th class="px-4 py-3 cursor-pointer" onclick="activateFilter('section')">
+            <span id="section-label">Section</span>
+            <input id="section-input" type="text" placeholder="Section"
+                    class="hidden mt-1 w-32 text-xs border px-2 py-1 rounded placeholder-gray-400" />
+            </th>
+
+            <th class="px-4 py-3">Total Days</th>
+            <th class="px-4 py-3">Present</th>
+            <th class="px-4 py-3">Absent</th>
+            <th class="px-4 py-3">Late</th>
+            <th class="px-4 py-3">Attendance %</th>
+            <th class="px-4 py-3">Details</th>
+        </tr>
+        </thead>
+
+
+    <tbody>
+      {% if students %}
+      {% for student in students %}
+      <tr class="border-t hover:bg-gray-50 transition"
+          data-name="{{ student.name|lower }}"
+          data-grade="{{ student.grade|stringformat:'s' }}"
+          data-section="{{ student.section|lower }}">
+        <td class="px-4 py-3">{{ forloop.counter }}</td>
+        <td class="px-4 py-3 font-medium">{{ student.name }}</td>
+        <td class="px-4 py-3">{{ student.grade }}</td>
+        <td class="px-4 py-3">{{ student.section }}</td>
+        <td class="px-4 py-3">{{ total_days }}</td>
+        <td class="px-4 py-3">{{ student.present_days }}</td>
+        <td class="px-4 py-3">{{ student.absent_days }}</td>
+        <td class="px-4 py-3">{{ student.late_days }}</td>
+        <td class="px-4 py-3 font-semibold {% if student.percentage < 75 %}text-red-600{% else %}text-green-600{% endif %}">
+          {{ student.percentage }}%
+        </td>
+        <td class="px-4 py-3">
+          <button onclick="openDetails({{ student.id }})" class="text-blue-600 hover:underline text-xs font-medium">View</button>
+        </td>
+      </tr>
+      {% endfor %}
+      {% else %}
+      <tr class="border-t">
+        <td colspan="10" class="px-4 py-4 text-center text-gray-500">No records found</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+
+</div>
+
+<!-- Modal -->
+{% for student in students %}
+<div id="modal-{{ student.id }}" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative overflow-y-auto max-h-[80vh]">
+    <h3 class="text-lg font-semibold mb-4">{{ student.name }} — Attendance Details</h3>
+
+    {% if student.details %}
+    <table class="w-full text-sm border">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="px-3 py-2 text-left">Date</th>
+          <th class="px-3 py-2 text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in student.details %}
+        <tr>
+          <td class="px-3 py-1">{{ today_bs }}</td>
+          <td class="px-3 py-1 {% if rec.status == 'Absent' %}text-red-600{% elif rec.status == 'Late' %}text-yellow-600{% else %}text-green-600{% endif %} font-medium">{{ rec.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-sm text-gray-500">No attendance records found.</p>
+    {% endif %}
+
+    <button onclick="closeDetails({{ student.id }})" class="absolute top-2 right-2 text-gray-400 hover:text-black text-xl font-bold">&times;</button>
+  </div>
+</div>
+{% endfor %}
+
+
+
+<!-- JS -->
+<script>
+  function openDetails(id) {
+    document.getElementById(`modal-${id}`).classList.remove('hidden');
+  }
+  function closeDetails(id) {
+    document.getElementById(`modal-${id}`).classList.add('hidden');
+  }
+
+
+  // Date Range Selector Logic
+  const form = document.getElementById('filter-form');
+  const dateSelect = document.getElementById('date-range-select');
+  const customDateFields = document.getElementById('custom-date-fields');
+
+  // Submit form on range change
+  dateSelect.addEventListener('change', function () {
+    if (this.value === 'custom') {
+      customDateFields.classList.remove('hidden');
+    } else {
+      customDateFields.classList.add('hidden');
+      form.submit();
+    }
+  });
+
+  // Submit on custom date change
+  customDateFields.querySelectorAll('input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (dateSelect.value === 'custom') {
+        form.submit();
+      }
+    });
+  }); 
+
+
+
+
+  // filter functionality
+   function activateFilter(type) {
+    document.getElementById(`${type}-label`).classList.add('hidden');
+    const input = document.getElementById(`${type}-input`);
+    input.classList.remove('hidden');
+    input.focus();
+  }
+
+  const rows = document.querySelectorAll("tbody tr[data-name]");
+
+  function filterRows() {
+    const nameVal = document.getElementById("name-input").value.toLowerCase();
+    const gradeVal = document.getElementById("grade-input").value.trim();
+    const sectionVal = document.getElementById("section-input").value.toLowerCase();
+
+    rows.forEach(row => {
+      const rowName = row.getAttribute("data-name");
+      const rowGrade = row.getAttribute("data-grade");
+      const rowSection = row.getAttribute("data-section");
+
+      const matchName = rowName.includes(nameVal);
+      const matchGrade = gradeVal === "" || rowGrade === gradeVal;
+      const matchSection = rowSection.includes(sectionVal);
+
+      row.classList.toggle("hidden", !(matchName && matchGrade && matchSection));
+    });
+  }
+
+  ["name", "grade", "section"].forEach(type => {
+    document.getElementById(`${type}-input`).addEventListener("input", filterRows);
+    document.getElementById(`${type}-input`).addEventListener("blur", () => {
+      if (!document.getElementById(`${type}-input`).value) {
+        document.getElementById(`${type}-input`).classList.add("hidden");
+        document.getElementById(`${type}-label`).classList.remove("hidden");
+      }
+    });
+  });
+
+
+</script>
+{% endblock %}

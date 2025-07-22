@@ -119,7 +119,7 @@
     <!-- Left Column (2/3 width) -->
     <div class="lg:col-span-2 space-y-6">
       <!-- Today's Classes -->
-      <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
+      {% comment %} <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
         <div class="p-5 border-b border-gray-100">
           <h2 class="text-lg font-medium text-gray-800">Today's Classes</h2>
         </div>
@@ -128,8 +128,9 @@
           <div class="p-4 hover:bg-gray-50 transition-colors">
             <div class="flex items-center">
               <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mr-4">
-                {{ class.time|time:"g:i" }}
+                P{{ class.period_number }}
               </div>
+
               <div class="flex-1 min-w-0">
                 <h3 class="text-gray-800 truncate">{{ class.name }}</h3>
                 <p class="text-sm text-gray-500 truncate">{{ class.subject }} • {{ class.room }}</p>
@@ -150,7 +151,41 @@
           </div>
           {% endfor %}
         </div>
+      </div> {% endcomment %}
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+        <!-- Header -->
+        <div class="p-5 border-b border-gray-100">
+          <h2 class="text-lg font-semibold text-gray-800">Today's Classes</h2>
+        </div>
+
+        <!-- Grid Layout -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
+          {% for class in todays_classes %}
+          <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                P{{ class.period_number }}
+              </span>
+              <span class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                {{ class.status }}
+              </span>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-800 truncate">{{ class.name }}</h3>
+              <p class="text-xs text-gray-500 truncate">{{ class.subject }}{% if class.room %} • {{ class.room }}{% endif %}</p>
+            </div>
+          </div>
+          {% empty %}
+          <div class="col-span-full text-center text-gray-500 py-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <p>No classes scheduled today</p>
+          </div>
+          {% endfor %}
+        </div>
       </div>
+
 
       <!-- Quick Actions - Floating Style -->
       <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
@@ -259,6 +294,83 @@
         </div>
       </div>
     </div>
+
+    <!-- Chart Section - Full Width -->
+    <div class="lg:col-span-3">
+      <div class="mt-6 p-6 bg-white shadow-lg rounded-xl">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+          Weekly Attendance Summary (Your Grade/Section)
+        </h2>
+        <canvas id="teacherAttendanceChart" height="140"></canvas>
+      </div>
+    </div>
+
+
   </div>
 </div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const chartData = {{ weekly_attendance_summary|safe }};
+
+    const labels = chartData.map(entry => entry.date);
+    const presentData = chartData.map(entry => entry.present);
+    const absentData = chartData.map(entry => entry.absent);
+    const lateData = chartData.map(entry => entry.late);
+
+    const ctx = document.getElementById('teacherAttendanceChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Present',
+            data: presentData,
+            backgroundColor: 'rgba(34, 197, 94, 0.8)' // green
+          },
+          {
+            label: 'Absent',
+            data: absentData,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)' // red
+          },
+          {
+            label: 'Late',
+            data: lateData,
+            backgroundColor: 'rgba(234, 179, 8, 0.8)' // yellow
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Day of Week'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Number of Students'
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+
+
+
 {% endblock %}
