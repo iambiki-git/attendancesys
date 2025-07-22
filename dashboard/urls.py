@@ -24,6 +24,8 @@ urlpatterns = [
     path('get_busy_teachers/', get_busy_teachers, name='get_busy_teachers'),
 
 
+    path('detailed/student/attendance/', detailed_student_attendance, name='detailed_student_attendance'),
+
 
 
     path('sections/save/', create_edit_section, name='create_section'),
@@ -58,7 +60,7 @@ urlpatterns = [
     #path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
     #path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
     path('import_students_csv/', import_students_csv, name='import_students_csv'),
-    path('core',code)
+    # path('core',code)
 
 
 ]
