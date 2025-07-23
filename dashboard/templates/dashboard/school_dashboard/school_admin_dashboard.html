@@ -114,7 +114,7 @@
     </div>
 
     <!-- Announcements -->
-    <div class="mt-12">
+    <div class="mt-12 mb-6">
       <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         📢 School Announcements
       </h2>
@@ -139,7 +139,7 @@
     </div>
 
     <!-- Attendance Chart -->
-    <div class="mt-10">
+    {% comment %} <div class="mt-10">
 
       <h2 class="text-lg font-semibold text-gray-800 mb-3">📊 Overall Attendance</h2>
       <div class="bg-white rounded-lg p-4 shadow-sm mb-10">
@@ -175,13 +175,43 @@
         </div>
       {% endif %}
 
-    </div>
+    </div> {% endcomment %}
+    <div class="flex justify-between items-center mb-4">
+  <h2 class="text-lg font-semibold text-gray-800">📊 Attendance Overview</h2>
+
+  <div class="flex items-center gap-4">
+    <select id="view-type" class="border px-3 py-1 rounded">
+      <option value="overall">Overall</option>
+      <option value="section">Grade-Section Wise</option>
+    </select>
+
+    <select id="grade-select" class="border px-3 py-1 rounded w-40 hidden">
+      <option value="">-- Select Grade --</option>
+      {% for grade in grades %}
+        <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="section-select" class="border px-3 py-1 rounded w-32 hidden">
+      <option value="">-- Select Section --</option>
+    </select>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg p-4 shadow-sm">
+  <canvas id="attendanceChart" height="120"></canvas>
+</div>
+
 
   </div>
 </div>
 
+<div id="section-present-data" class="hidden">{{ section_present_data|safe }}</div>
+<div id="section-absent-data" class="hidden">{{ section_absent_data|safe }}</div>
+<div id="section-late-data" class="hidden">{{ section_late_data|safe }}</div>
+
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const labels = {{ attendance_labels|safe }};
 
@@ -348,10 +378,149 @@ new Chart(document.getElementById('sectionAttendanceChart'), {
   // When grade changes
   gradeSelect.addEventListener('change', function () {
     populateSections(this.value);
+  }); {% endcomment %}
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const labels = {{ attendance_labels|safe }};
+  const sectionsByGrade = {{ sections_by_grade|safe }};
+  const selectedSection = "{{ selected_section }}";
+
+  const overallData = {
+    present: {{ overall_present_data|safe }},
+    absent: {{ overall_absent_data|safe }},
+    late: {{ overall_late_data|safe }},
+  };
+
+  const sectionData = {
+    present: {{ section_present_data|safe }},
+    absent: {{ section_absent_data|safe }},
+    late: {{ section_late_data|safe }},
+  };
+
+  const viewTypeSelect = document.getElementById('view-type');
+  const gradeSelect = document.getElementById('grade-select');
+  const sectionSelect = document.getElementById('section-select');
+  const ctx = document.getElementById('attendanceChart');
+
+  let attendanceChart;
+
+  function populateSections(gradeId) {
+    sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+    if (sectionsByGrade[gradeId]) {
+      sectionsByGrade[gradeId].forEach(sec => {
+        const opt = document.createElement('option');
+        opt.value = sec;
+        opt.textContent = sec;
+        sectionSelect.appendChild(opt);
+      });
+    }
+  }
+
+  function fetchSectionData(gradeId, sectionName) {
+    if (!gradeId || !sectionName) return;
+
+    fetch(`?grade=${gradeId}&section=${sectionName}`)
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(html, 'text/html');
+
+        const newData = {
+          present: JSON.parse(newDoc.getElementById('section-present-data').textContent),
+          absent: JSON.parse(newDoc.getElementById('section-absent-data').textContent),
+          late: JSON.parse(newDoc.getElementById('section-late-data').textContent)
+        };
+
+        updateChart(newData);
+      });
+  }
+
+  function updateChart(data) {
+    if (attendanceChart) attendanceChart.destroy();
+
+    attendanceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '✅ Present',
+            data: data.present,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4
+          },
+          {
+            label: '❌ Absent',
+            data: data.absent,
+            borderColor: '#EF4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4
+          },
+          {
+            label: '⏰ Late',
+            data: data.late,
+            borderColor: '#F59E0B',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Attendance Ratio (0–1)', font: { size: 12, weight: 'bold' } }
+          },
+          x: {
+            title: { display: true, text: 'Day of Week', font: { size: 14, weight: 'bold' } }
+          }
+        }
+      }
+    });
+  }
+
+  viewTypeSelect.addEventListener('change', () => {
+    const view = viewTypeSelect.value;
+    if (view === 'overall') {
+      gradeSelect.classList.add('hidden');
+      sectionSelect.classList.add('hidden');
+      updateChart(overallData);
+    } else {
+      gradeSelect.classList.remove('hidden');
+      sectionSelect.classList.remove('hidden');
+      const gradeId = gradeSelect.value;
+      const sectionName = sectionSelect.value;
+      if (gradeId && sectionName) fetchSectionData(gradeId, sectionName);
+    }
   });
 
+  gradeSelect.addEventListener('change', () => {
+    populateSections(gradeSelect.value);
+    sectionSelect.value = '';
+  });
 
-  // Live time update
+  sectionSelect.addEventListener('change', () => {
+    if (gradeSelect.value && sectionSelect.value) {
+      fetchSectionData(gradeSelect.value, sectionSelect.value);
+    }
+  });
+
+  // Initial chart
+  updateChart(overallData);
+
+
+   // Live time update
   function updateLiveTime() {
     const now = new Date();
     document.getElementById("liveTime").textContent =
@@ -366,6 +535,9 @@ new Chart(document.getElementById('sectionAttendanceChart'), {
   updateLiveTime();
   setInterval(updateLiveTime, 1000);
 </script>
+
+  
+ 
 
 
 {% endblock %}

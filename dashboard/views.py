@@ -2205,7 +2205,6 @@ def detailed_student_attendance(request):
     end_date = request.GET.get('end_date')
 
     today = timezone.now().date()
-    today_bs = nepali_datetime.date.from_datetime_date(today)
     attendance_filter = Q(student__school=school)
 
     # Handle date range filtering
@@ -2233,6 +2232,12 @@ def detailed_student_attendance(request):
 
     # Total school-wide attendance days
     total_days = attendance_records.values('date').distinct().count()
+    # Total counts across all records in the range
+    total_present = attendance_records.filter(status='Present').count()
+    total_absent = attendance_records.filter(status='Absent').count()
+    total_late = attendance_records.filter(status='Late').count()
+
+    print(total_present, total_absent, total_late)
 
     student_qs = Student.objects.filter(school=school).select_related('grade', 'section') \
         .order_by('grade__grade_number', 'section__name', 'roll_number')
@@ -2261,7 +2266,7 @@ def detailed_student_attendance(request):
             'percentage': percentage,
 
             # Optional: Include details for modal
-            'details': list(student_attendance.values('date', 'status').order_by('-date'))
+            'details': list(student_attendance.values('date', 'status').order_by('-date')),
         })
 
     context = {
@@ -2270,7 +2275,10 @@ def detailed_student_attendance(request):
         'date_range': date_range,
         'start_date': start_date,
         'end_date': end_date,
-        'today_bs': today_bs.strftime('%K-%n-%D'),  # e.g., 2081-04-08
+
+        'total_present': total_present,
+        'total_absent': total_absent,
+        'total_late': total_late,
 
     }
 
