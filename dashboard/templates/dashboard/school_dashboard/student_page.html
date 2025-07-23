@@ -70,6 +70,11 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Father's Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mother's Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DOB</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parents's Contact</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
@@ -91,6 +96,13 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-roll">{{ student.roll_number }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-fatherName">{{ student.father_name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-motherName">{{ student.mother_name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-dob">{{ student.dob }}</td>
+
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-address">{{ student.address }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-parentsContact">{{ student.parents_contact }}</td>
+              
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <!-- Edit Button -->
@@ -110,6 +122,7 @@
                   </button>
                 </div>
               </td>
+
             </tr>
           {% endfor %}
         </tbody>
@@ -118,20 +131,6 @@
     </div>
   {% endif %}
 </div>
-
-{% comment %} <div class="mt-4 flex justify-center gap-2">
-  {% if students.has_previous %}
-    <a href="?page=1{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">First</a>
-    <a href="?page={{ students.previous_page_number }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Previous</a>
-  {% endif %}
-
-  <span class="px-3 py-1 bg-blue-100 rounded">Page {{ students.number }} of {{ students.paginator.num_pages }}</span>
-
-  {% if students.has_next %}
-    <a href="?page={{ students.next_page_number }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Next</a>
-    <a href="?page={{ students.paginator.num_pages }}{% if selected_grade %}&grade_id={{ selected_grade }}{% endif %}{% if selected_section %}&section_id={{ selected_section }}{% endif %}" class="px-3 py-1 bg-gray-200 rounded">Last</a>
-  {% endif %}
-</div> {% endcomment %}
 
 
 <!-- Template for new student row (hidden by default) -->
@@ -156,6 +155,24 @@
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="number" id="newStudentRollNo" class="border px-2 py-1 rounded text-sm w-full" placeholder="Roll No">
     </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="newStudentFatherName" class="border px-2 py-1 rounded text-sm w-full" placeholder="Father's Name">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="newStudentMotherName" class="border px-2 py-1 rounded text-sm w-full" placeholder="Mother's Name">
+    </td>
+
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="date" id="newStudentDOB" class="border px-2 py-1 rounded text-sm w-full" placeholder="DOB">
+    </td>
+
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="newStudentAddress" class="border px-2 py-1 rounded text-sm w-full" placeholder="Student Address">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="newStudentParentsContact" class="border px-2 py-1 rounded text-sm w-full" placeholder="Parents Phone Nbr">
+    </td>
+    
     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
       <div class="flex space-x-2">
         <button onclick="saveNewStudent()" class="text-green-600 hover:text-green-900">
@@ -195,6 +212,24 @@
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="number" id="editStudentRollNo" class="border px-2 py-1 rounded text-sm w-full">
     </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="editStudentFatherName" class="border px-2 py-1 rounded text-sm w-full">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="editStudentMotherName" class="border px-2 py-1 rounded text-sm w-full">
+    </td>
+
+    <td class="px-6 py-4 whitespace-nowrap">
+  <input type="date" id="editStudentDOB" class="border px-2 py-1 rounded text-sm w-full">
+</td>
+
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="editStudentAddress" class="border px-2 py-1 rounded text-sm w-full">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+      <input type="text" id="editStudentParentsContact" class="border px-2 py-1 rounded text-sm w-full">
+    </td>
+
     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
       <div class="flex space-x-2">
         <button onclick="saveEditedStudent()" class="text-green-600 hover:text-green-900">
@@ -331,6 +366,12 @@
   function saveNewStudent() {
     const name = document.getElementById('newStudentName').value;
     const rollNo = document.getElementById('newStudentRollNo').value;
+    const fatherName = document.getElementById('newStudentFatherName').value;
+    const motherName = document.getElementById('newStudentMotherName').value;
+    const parentContact = document.getElementById('newStudentParentsContact').value;
+    const address = document.getElementById('newStudentAddress').value;
+    const dob = document.getElementById('newStudentDOB').value;
+
     const gradeId = "{{ request.GET.grade_id }}";
     const sectionId = "{{ request.GET.section_id }}";
 
@@ -360,6 +401,12 @@
     const formData = new FormData();
     formData.append('full_name', name);
     formData.append('roll_no', rollNo);
+    formData.append('father_name', fatherName);
+    formData.append('mother_name', motherName);
+    formData.append('dob', dob);
+
+    formData.append('parents_contact', parentContact);
+    formData.append('address', address);
     formData.append('grade_id', gradeId);
     formData.append('section_id', sectionId);
 
@@ -402,6 +449,12 @@
     // Get student data
     const name = studentRow.querySelector('.student-name').textContent;
     const rollNo = studentRow.querySelector('.student-roll').textContent;
+    const fatherName = studentRow.querySelector('.student-fatherName').textContent;
+    const motherName = studentRow.querySelector('.student-motherName').textContent;
+    const dob = studentRow.querySelector('.student-dob').textContent;
+
+    const parentsContact = studentRow.querySelector('.student-parentsContact').textContent;
+    const address = studentRow.querySelector('.student-address').textContent;
     const rowNumber = studentRow.querySelector('td:first-child').textContent;
 
     // Hide the original row
@@ -415,7 +468,11 @@
     editRow.querySelector('#editRowNumber').textContent = rowNumber;
     editRow.querySelector('#editStudentName').value = name;
     editRow.querySelector('#editStudentRollNo').value = rollNo;
-
+    editRow.querySelector('#editStudentFatherName').value = fatherName;
+    editRow.querySelector('#editStudentMotherName').value = motherName;
+    editRow.querySelector('#editStudentDOB').value = dob;
+    editRow.querySelector('#editStudentParentsContact').value = parentsContact;
+    editRow.querySelector('#editStudentAddress').value = address;
     // Set the student ID we're editing
     currentlyEditingStudentId = studentId;
 
@@ -444,6 +501,13 @@
   function saveEditedStudent() {
     const name = document.getElementById('editStudentName').value;
     const rollNo = document.getElementById('editStudentRollNo').value;
+    const fatherName = document.getElementById('editStudentFatherName').value;
+    const motherName = document.getElementById('editStudentMotherName').value;
+    const dob = document.getElementById('editStudentDOB').value;
+    const parentsContact = document.getElementById('editStudentParentsContact').value;
+    const address = document.getElementById('editStudentAddress').value;
+
+    console.log(fatherName, motherName, parentsContact, address, dob);
 
     if (!name || !rollNo) {
         alert('Please fill in all fields');
@@ -471,6 +535,11 @@
     const formData = new FormData();
     formData.append('name', name);
     formData.append('roll_no', rollNo);
+    formData.append('father_name', fatherName);
+    formData.append('mother_name', motherName);
+    formData.append('dob', dob);
+    formData.append('parents_contact', parentsContact);
+    formData.append('address', address);
     formData.append('student_id', currentlyEditingStudentId);
 
     fetch("{% url 'update_student' %}", {
@@ -492,7 +561,7 @@
             showSuccessMessage(data.message || 'Student updated successfully!');
             
             // Update the row with new data without reloading
-            updateStudentRowInTable(currentlyEditingStudentId, name, rollNo);
+            updateStudentRowInTable(currentlyEditingStudentId, name, rollNo, fatherName, motherName, dob, address, parentsContact);
             
             // Cancel edit mode
             cancelEditStudent();
@@ -535,11 +604,17 @@ function showSuccessMessage(message) {
 }
 
 // Helper function to update the table row
-function updateStudentRowInTable(studentId, name, rollNo) {
+function updateStudentRowInTable(studentId, name, rollNo, fatherName, motherName, dob, address, parentsContact) {
     const studentRow = document.getElementById(`student-${studentId}`);
     if (studentRow) {
         studentRow.querySelector('.student-name').textContent = name;
         studentRow.querySelector('.student-roll').textContent = rollNo;
+        studentRow.querySelector('.student-fatherName').textContent = fatherName;
+        studentRow.querySelector('.student-motherName').textContent = motherName;
+        studentRow.querySelector('.student-dob').textContent = dob;
+
+        studentRow.querySelector('.student-address').textContent = address;
+        studentRow.querySelector('.student-parentsContact').textContent = parentsContact;
     }
 }
 

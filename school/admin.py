@@ -16,12 +16,13 @@ class SectionAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'school', 'grade', 'section', 'roll_number')
+    #list_display = ('id', 'name', 'school', 'grade', 'section', 'roll_number')
+    list_display = ('id', 'name', 'school', 'grade', 'section', 'roll_number', 'father_name', 'mother_name', 'dob', 'address', 'parents_contact')
     list_filter = ('school',)
 
 @admin.register(TeacherProfile)
 class TeacherProfileAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'school', 'grade', 'section']
+    list_display = ['id', 'user', 'school', 'grade', 'section', 'phone', 'dob', 'address', 'edu_qualification', 'specialization', 'year_of_experience']
 
     # def get_grades(self, obj):
     #     return ", ".join([str(grade.grade_number) for grade in obj.grades.all()])

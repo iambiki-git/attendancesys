@@ -109,58 +109,6 @@ def logout_view(request):
     return redirect('/')  # Make sure 'login' name matches your login path
 
 
-# from django.http import HttpResponseForbidden
-# from datetime import datetime, timedelta
-# @login_required(login_url='/')
-# def school_dashboard(request):
-#     if not request.user.is_staff and not request.user.is_school_admin:
-#         return HttpResponseForbidden("You are not authorized to access this page.")
-    
-#     school = request.user.school
-#     students = Student.objects.filter(school=school)
-#     teachers = TeacherProfile.objects.filter(school=school)
-#     grades = Grade.objects.filter(school=school)
-#     today = datetime.today()
-
-#     total_students = students.count()
-#     total_teachers = teachers.count()
-#     total_grades = grades.count
-
-#     # Define the week range (Sunday to Friday)
-#     start_of_week = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
-
-#     labels = []
-#     present_data = []
-#     absent_data = []
-#     late_data = []
-
-#     for i in range(6):  # Sunday to Friday
-#         day = start_of_week + timedelta(days=i)
-#         labels.append(day.strftime('%a'))  # "Sun", "Mon", etc.
-
-#         daily_qs = Attendance.objects.filter(student__school=school, date=day)
-
-#         present_data.append(daily_qs.filter(status='Present').count())
-#         absent_data.append(daily_qs.filter(status='Absent').count())
-#         late_data.append(daily_qs.filter(status='Late').count())
-
-
-#     context = {
-#         'school': school,
-#         'total_students': total_students,
-#         'total_teachers': total_teachers,
-#         'total_grades': total_grades,
-#         'today': today,
-
-#         'attendance_labels': json.dumps(labels),
-#         'present_data': json.dumps(present_data),
-#         'absent_data': json.dumps(absent_data),
-#         'late_data': json.dumps(late_data),
-
-#     }
-
-#     return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
-
 
 from datetime import datetime, timedelta
 import json
@@ -398,6 +346,13 @@ def create_student(request):
             roll_no = request.POST.get('roll_no')
             grade_id = request.POST.get('grade_id')
             section_id = request.POST.get('section_id')
+            father_name = request.POST.get('father_name', '').strip()
+            mother_name = request.POST.get('mother_name', '').strip()
+            dob = request.POST.get('dob')
+            
+            address = request.POST.get('address', '').strip()
+            parents_contact = request.POST.get('parents_contact', '').strip()
+
 
             if not all([full_name, roll_no, grade_id, section_id]):
                 return JsonResponse({'success': False, 'error': 'All fields are required'})
@@ -419,6 +374,11 @@ def create_student(request):
                 "roll_number": int(roll_no),
                 "grade": int(grade_id),
                 "section": int(section_id),
+                "father_name": father_name,
+                "mother_name": mother_name,
+                "dob": dob if dob else None,  # Handle empty date
+                "address": address,
+                "parents_contact": parents_contact,
             }
 
             headers = {
@@ -443,6 +403,13 @@ def update_student(request):
         student_id = request.POST.get('student_id')
         name = request.POST.get('name')
         roll_no = request.POST.get('roll_no')
+        fatherName = request.POST.get('father_name', '').strip()
+        motherName = request.POST.get('mother_name', '').strip()
+        dob = request.POST.get('dob', '').strip()
+        parentsContact = request.POST.get('parents_contact', '').strip()
+        address = request.POST.get('address', '').strip()
+
+        print(fatherName, motherName, parentsContact, address, dob)
         
         if not all([student_id, name, roll_no]):
             return JsonResponse({
@@ -453,6 +420,11 @@ def update_student(request):
         student = Student.objects.get(id=student_id)
         student.name = name
         student.roll_number = roll_no
+        student.father_name = fatherName
+        student.mother_name = motherName
+        student.dob = dob if dob else None  # Handle empty date
+        student.parents_contact = parentsContact
+        student.address = address
         student.save()
         
         return JsonResponse({
@@ -460,7 +432,12 @@ def update_student(request):
             'message': 'Student information updated successfully!',
             'updated_data': {
                 'name': name,
-                'roll_no': roll_no
+                'roll_no': roll_no,
+                'father_name': fatherName,
+                'mother_name': motherName,
+                'dob': dob,
+                'address': address,
+                'parents_contact': parentsContact
             }
         })
         
@@ -1482,50 +1459,6 @@ def attendance_details(request):
     })
 
 
-
-import csv
-def upload_students_csv(request):
-    if request.method == 'POST' and request.FILES.get('csv_file'):
-        csv_file = request.FILES['csv_file']
-        grade_id = request.POST.get('grade_id')
-        section_id = request.POST.get('section_id')
-
-        # Validate grade and section
-        try:
-            grade = Grade.objects.get(id=grade_id)
-            section = Section.objects.get(id=section_id)
-        except (Grade.DoesNotExist, Section.DoesNotExist):
-            messages.error(request, "Invalid Grade or Section.")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
-
-        # Read and parse the CSV file
-        decoded_file = csv_file.read().decode('utf-8').splitlines()
-        reader = csv.reader(decoded_file)
-
-        created_count = 0
-        for row in reader:
-            if len(row) < 2:
-                continue  # Skip malformed rows
-
-            name, roll_no = row[0].strip(), row[1].strip()
-            if name and roll_no:
-                Student.objects.create(
-                    name=name,
-                    roll_number=roll_no,
-                    grade=grade,
-                    section=section
-                )
-                created_count += 1
-
-        messages.success(request, f"{created_count} students imported successfully.")
-        return redirect(request.META.get('HTTP_REFERER', '/'))
-
-    messages.error(request, "No CSV file uploaded.")
-    return redirect(request.META.get('HTTP_REFERER', '/'))
-
-
-
-
 def get_teacher_assignments(request):
     school = request.user.school
     routines = Routine.objects.filter(school=school)
@@ -1582,158 +1515,6 @@ from school.models import Routine
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-
-# @csrf_exempt
-# def save_routine(request):
-#     if request.method == 'POST':
-#         try:
-#             data = json.loads(request.body)
-#             routines = data.get('routines', {})
-#             period_names = data.get('period_names', {})
-
-#             school = request.user.school  # assuming you're using request.user
-
-#             for key, daily_routine in routines.items():
-#                 grade_id, section_id = map(int, key.split('-'))
-#                 grade = Grade.objects.get(id=grade_id)
-#                 section = Section.objects.get(id=section_id)
-
-#                 for day, periods in daily_routine.items():
-#                     for period_str, entry in periods.items():
-#                         period_number = int(period_str)
-#                         subject_id = entry.get('subject_id')
-#                         teacher_id = entry.get('teacher_id')
-
-#                         if not subject_id or not teacher_id:
-#                             continue
-
-#                         subject = Subjects.objects.get(id=subject_id)
-#                         teacher = TeacherProfile.objects.get(id=teacher_id)
-
-#                         # ❌ Check for conflict in other sections
-#                         conflict = Routine.objects.filter(
-#                             day=day,
-#                             period_number=period_number,
-#                             teacher=teacher,
-#                             school=school
-#                         ).exclude(grade=grade, section=section).exists()
-
-#                         if conflict:
-#                             return JsonResponse({
-#                                 'success': False,
-#                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
-#                             })
-
-#                         # ✅ Save or update
-#                         Routine.objects.update_or_create(
-#                             day=day,
-#                             period_number=period_number,
-#                             grade=grade,
-#                             section=section,
-#                             school=school,
-#                             defaults={
-#                                 'subject': subject,
-#                                 'teacher': teacher
-#                             }
-#                         )
-
-
-#             return JsonResponse({'success': True})
-        
-#         except Exception as e:
-#             return JsonResponse({'success': False, 'error': str(e)})
-
-#     return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-# @csrf_exempt
-# def save_routine(request):
-#     if request.method == 'POST':
-#         try:
-#             data = json.loads(request.body)
-#             routines = data.get('routines', {})
-#             period_names = data.get('period_names', {})
-
-#             school = request.user.school  # assuming you're using request.user
-
-#             for key, daily_routine in routines.items():
-#                 grade_id, section_id = map(int, key.split('-'))
-#                 grade = Grade.objects.get(id=grade_id)
-#                 section = Section.objects.get(id=section_id)
-
-#                 class_teacher_set = False  # Track if class teacher is already set
-
-#                 for day, periods in daily_routine.items():
-#                     for period_str, entry in periods.items():
-#                         period_number = int(period_str)
-#                         subject_id = entry.get('subject_id')
-#                         teacher_id = entry.get('teacher_id')
-
-#                         if not subject_id or not teacher_id:
-#                             continue
-
-#                         subject = Subjects.objects.get(id=subject_id)
-#                         teacher = TeacherProfile.objects.get(id=teacher_id)
-
-#                         # ❌ Check for conflict in other sections
-#                         conflict = Routine.objects.filter(
-#                             day=day,
-#                             period_number=period_number,
-#                             teacher=teacher,
-#                             school=school
-#                         ).exclude(grade=grade, section=section).exists()
-
-#                         if conflict:
-#                             return JsonResponse({
-#                                 'success': False,
-#                                 'error': f"❌ Conflict: Teacher '{teacher.user.get_full_name()}' is already assigned on {day}, Period {period_number} in another class."
-#                             })
-
-#                         # ✅ Save or update routine
-#                         Routine.objects.update_or_create(
-#                             day=day,
-#                             period_number=period_number,
-#                             grade=grade,
-#                             section=section,
-#                             school=school,
-#                             defaults={
-#                                 'subject': subject,
-#                                 'teacher': teacher
-#                             }
-#                         )
-
-#                         # # ✅ Set Class Teacher if Sunday Period 1
-#                         # if day == "Sunday" and period_number == 1 and not class_teacher_set:
-#                         #     teacher.grade = grade
-#                         #     teacher.section = section
-#                         #     teacher.save()
-#                         #     class_teacher_set = True
-
-#                         if day == "Sunday" and period_number == 1 and not class_teacher_set:
-#                             # Unset any previous class teacher assigned to this grade-section
-#                             TeacherProfile.objects.filter(
-#                                 grade=grade,
-#                                 section=section
-#                             ).exclude(id=teacher.id).update(
-#                                 grade=None,
-#                                 section=None
-#                             )
-
-#                             # Set the current teacher as class teacher (if not already)
-#                             if teacher.grade_id != grade.id or teacher.section_id != section.id:
-#                                 teacher.grade = grade
-#                                 teacher.section = section
-#                                 teacher.save()
-
-#                             class_teacher_set = True
-
-
-#             return JsonResponse({'success': True})
-        
-#         except Exception as e:
-#             return JsonResponse({'success': False, 'error': str(e)})
-
-#     return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
 
 @csrf_exempt
 @login_required
@@ -1872,26 +1653,6 @@ def load_routine(request):
 
 
 
-
-
-# @login_required
-# def get_busy_teachers(request):
-#     day = request.GET.get('day')
-#     period = request.GET.get('period')
-
-#     if not day or not period:
-#         return JsonResponse({'error': 'Missing day or period'}, status=400)
-
-#     school = request.user.school
-#     busy_teachers = Routine.objects.filter(
-#         day=day,
-#         period_number=period,
-#         school=school
-#     ).values_list('teacher_id', flat=True)
-
-#     return JsonResponse({'busy_teacher_ids': list(busy_teachers)})
-
-
 @login_required
 def get_busy_teachers(request):
     day = request.GET.get('day')
@@ -1940,92 +1701,70 @@ def teacher_routine_view(request):
     else:
         return render(request, 'not_authorized.html')
 
-
-
-# @csrf_exempt
-# def assign_class_teacher(request):
-#     if request.method == 'POST':
-#         try:
-#             data = json.loads(request.body)
-#             grade_id = data.get("grade")
-#             section_id = data.get("section")
-#             teacher_id = data.get("teacher_id")
-
-#             # Clear previous class teacher for this section
-#             TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
-
-#             # Assign new class teacher
-#             teacher = TeacherProfile.objects.get(id=teacher_id)
-#             teacher.grade_id = grade_id
-#             teacher.section_id = section_id
-#             teacher.save()
-
-#             return JsonResponse({'success': True})
-#         except Exception as e:
-#             return JsonResponse({'success': False, 'error': str(e)})
-
+# import csv
+# from io import TextIOWrapper
 
 # @csrf_exempt
-# def assign_class_teacher(request):
-#     if request.method == 'POST':
+# def import_students_csv(request):
+#     school = request.user.school
+#     if request.method == 'POST' and request.FILES.get('csv_file'):
 #         try:
-#             data = json.loads(request.body)
-#             grade_id = data.get("grade")
-#             section_id = data.get("section")
-#             teacher_id = data.get("teacher_id")
+#             grade_id = request.POST.get('grade_id')
+#             section_id = request.POST.get('section_id')
 
-#             # Clear previous class teacher for this section
-#             TeacherProfile.objects.filter(section_id=section_id).update(grade=None, section=None)
+#             grade = Grade.objects.get(id=grade_id)
+#             section = Section.objects.get(id=section_id)
 
-#             # Assign new class teacher
-#             teacher = TeacherProfile.objects.get(id=teacher_id)
-#             teacher.grade_id = grade_id
-#             teacher.section_id = section_id
-#             teacher.save()
+#             csv_file = TextIOWrapper(request.FILES['csv_file'].file, encoding='utf-8')
+#             reader = csv.DictReader(csv_file)
 
-#             # Update or create Sunday Period 1 to assign class teacher
-#             days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-#             for day in days:
-#                 Routine.objects.update_or_create(
-#                     grade_id=grade_id,
-#                     section_id=section_id,
-#                     day=day,
-#                     period_number=1,
-#                     defaults={
-#                         'teacher': teacher
-#                     }
+#             skipped = []
+
+#             for row in reader:
+#                 name = row['name'].strip()
+#                 roll_number = row['roll_number'].strip()
+
+#                 # Check for duplicate roll number in same grade & section
+#                 if Student.objects.filter(
+#                     grade=grade, section=section, roll_number=roll_number
+#                 ).exists():
+#                     skipped.append(f"{name} (Roll {roll_number})")
+#                     continue
+
+#                 Student.objects.create(
+#                     name=name,
+#                     roll_number=roll_number,
+#                     grade=grade,
+#                     section=section,
+#                     school=school,
 #                 )
 
-#             return JsonResponse({'success': True})
+#             message = "✅ Students imported successfully."
+#             if skipped:
+#                 message += f" ⚠️ Skipped {len(skipped)} duplicate(s): " + ", ".join(skipped[:5])
+#                 if len(skipped) > 5:
+#                     message += "..."
+
+#             return JsonResponse({'success': True, 'message': message})
 
 #         except Exception as e:
 #             return JsonResponse({'success': False, 'error': str(e)})
 
-
-# def get_class_teacher(request):
-#     grade_id = request.GET.get("grade")
-#     section_id = request.GET.get("section")
-
-#     all_teachers = TeacherProfile.objects.select_related('user')
-#     current_teacher = all_teachers.filter(grade_id=grade_id, section_id=section_id).first()
-
-#     response = {
-#         "current_teacher_id": current_teacher.id if current_teacher else None,
-#         "teacher_list": []
-#     }
-
-#     for t in all_teachers:
-#         response["teacher_list"].append({
-#             "id": t.id,
-#             "name": t.user.get_full_name(),
-#             "assigned": bool(t.grade_id and t.section_id and (t.grade_id != int(grade_id) or t.section_id != int(section_id)))
-#         })
-
-#     return JsonResponse(response)
+#     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
 import csv
 from io import TextIOWrapper
+from datetime import datetime
+from django.views.decorators.csrf import csrf_exempt
+
+def parse_flexible_date(dob_str):
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%m/%d/%y"):
+        try:
+            return datetime.strptime(dob_str.strip(), fmt).date()
+        except (ValueError, AttributeError):
+            continue
+    return None
 
 @csrf_exempt
 def import_students_csv(request):
@@ -2044,22 +1783,30 @@ def import_students_csv(request):
             skipped = []
 
             for row in reader:
-                name = row['name'].strip()
-                roll_number = row['roll_number'].strip()
+                name = row.get('name', '').strip()
+                roll_number = row.get('roll_number', '').strip()
 
-                # Check for duplicate roll number in same grade & section
-                if Student.objects.filter(
-                    grade=grade, section=section, roll_number=roll_number
-                ).exists():
+                if not name or not roll_number:
+                    continue  # skip incomplete rows
+
+                # Check for duplicate roll number
+                if Student.objects.filter(grade=grade, section=section, roll_number=roll_number).exists():
                     skipped.append(f"{name} (Roll {roll_number})")
                     continue
 
+                dob = parse_flexible_date(row.get('dob', ''))
+
                 Student.objects.create(
+                    school=school,
                     name=name,
-                    roll_number=roll_number,
                     grade=grade,
                     section=section,
-                    school=school,
+                    roll_number=int(roll_number),
+                    father_name=row.get('father_name', '').strip(),
+                    mother_name=row.get('mother_name', '').strip(),
+                    dob=dob,
+                    address=row.get('address', '').strip(),
+                    parents_contact=row.get('parents_contact', '').strip()
                 )
 
             message = "✅ Students imported successfully."
@@ -2076,121 +1823,8 @@ def import_students_csv(request):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
-
 # def code(request):
 #     return render(request,'code.html')
-
-
-# from django.db.models import Q
-# def detailed_student_attendance(request):
-#     school = request.user.school
-
-#     # Get all unique dates when attendance was recorded
-#     total_days = Attendance.objects.filter(student__school=school).values('date').distinct().count()
-
-#     student_qs = Student.objects.filter(school=school).select_related('grade', 'section') \
-#         .order_by('grade__grade_number', 'section__name', 'roll_number')
-
-#     student_list = []
-
-#     for student in student_qs:
-#         attendance_records = Attendance.objects.filter(student=student)
-
-#         present_days = attendance_records.filter(status__in=['Present', 'Late']).count()
-#         absent_days = attendance_records.filter(status='Absent').count()
-#         late_days = attendance_records.filter(status='Late').count()
-
-#         percentage = round((present_days / total_days) * 100, 1) if total_days > 0 else 0.0
-
-#         student_list.append({
-#             'id': student.id,
-#             'name': student.name,
-#             'roll_number': student.roll_number,
-#             'grade': student.grade.grade_number,
-#             'section': student.section.name,
-#             'total_days': total_days,  # same for all students
-#             'present_days': present_days,
-#             'absent_days': absent_days,
-#             'late_days': late_days,
-#             'percentage': percentage
-#         })
-
-#     context = {
-#         'students': student_list,
-#         'total_days': total_days
-#     }
-
-#     return render(request, 'dashboard/school_dashboard/detailed_student_attendance.html', context)
-
-
-# from django.db.models import Q
-# from datetime import timedelta
-# from django.utils import timezone
-
-# def detailed_student_attendance(request):
-#     school = request.user.school
-
-#     # Get filters from GET
-#     date_range = request.GET.get('date_range', 'month')
-#     start_date = request.GET.get('start_date')
-#     end_date = request.GET.get('end_date')
-
-#     # Determine date filtering
-#     attendance_filter = Q(student__school=school)
-#     today = timezone.now().date()
-
-#     if date_range == 'today':
-#         attendance_filter &= Q(date=today)
-#     elif date_range == 'week':
-#         week_start = today - timedelta(days=today.weekday())
-#         attendance_filter &= Q(date__range=(week_start, today))
-#     elif date_range == 'month':
-#         month_start = today.replace(day=1)
-#         attendance_filter &= Q(date__range=(month_start, today))
-#     elif date_range == 'custom' and start_date and end_date:
-#         attendance_filter &= Q(date__range=(start_date, end_date))
-
-#     # Filter all attendance for the school and range
-#     attendance_records = Attendance.objects.filter(attendance_filter)
-
-#     # Get total days from unique dates in filtered attendance
-#     total_days = attendance_records.values('date').distinct().count()
-
-#     student_qs = Student.objects.filter(school=school).select_related('grade', 'section') \
-#         .order_by('grade__grade_number', 'section__name', 'roll_number')
-
-#     student_list = []
-#     for student in student_qs:
-#         student_attendance = attendance_records.filter(student=student)
-
-#         present_days = student_attendance.filter(status__in=['Present', 'Late']).count()
-#         absent_days = student_attendance.filter(status='Absent').count()
-#         late_days = student_attendance.filter(status='Late').count()
-
-#         percentage = round((present_days / total_days) * 100, 1) if total_days > 0 else 0.0
-
-#         student_list.append({
-#             'id': student.id,
-#             'name': student.name,
-#             'roll_number': student.roll_number,
-#             'grade': student.grade.grade_number,
-#             'section': student.section.name,
-#             'total_days': total_days,
-#             'present_days': present_days,
-#             'absent_days': absent_days,
-#             'late_days': late_days,
-#             'percentage': percentage
-#         })
-
-#     context = {
-#         'students': student_list,
-#         'total_days': total_days,
-#         'date_range': date_range,
-#         'start_date': start_date,
-#         'end_date': end_date,
-#     }
-
-#     return render(request, 'dashboard/school_dashboard/detailed_student_attendance.html', context)
 
 
 from django.db.models import Q
@@ -2283,3 +1917,62 @@ def detailed_student_attendance(request):
     }
 
     return render(request, 'dashboard/school_dashboard/detailed_student_attendance.html', context)
+
+
+from django.utils.dateparse import parse_date
+@login_required
+def profile(request):
+    user = request.user
+
+    if request.method == 'POST':
+        # Update CustomUser basic info
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+
+        # Update TeacherProfile if user is a teacher
+        if user.is_teacher:
+            profile, created = TeacherProfile.objects.get_or_create(user=user)
+            profile.phone = request.POST.get('phone', profile.phone)
+            dob = request.POST.get('dob')
+            profile.dob = parse_date(dob) if dob else profile.dob
+            profile.address = request.POST.get('address', profile.address)
+            profile.edu_qualification = request.POST.get('qualification', profile.edu_qualification)
+            profile.specialization = request.POST.get('specialization', profile.specialization)
+            year_of_experience = request.POST.get('year_of_experience')
+            profile.year_of_experience = int(year_of_experience) if year_of_experience else profile.year_of_experience
+            profile.save()
+
+        messages.success(request, "✅ Your profile has been updated.")
+        return redirect('profile')
+
+    return render(request, 'dashboard/profile.html')
+
+
+
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+def teacher_detail(request, teacher_id):
+    try:
+        user = User.objects.get(id=teacher_id, is_teacher=True)
+        profile = user.teacherprofile
+
+        data = {
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "username": user.username,
+            "phone": profile.phone,
+            "dob": profile.dob.isoformat() if profile.dob else None,
+            "qualification": profile.edu_qualification,
+            "specialization": profile.specialization,
+            "experience": profile.year_of_experience,
+            "address": profile.address
+        }
+
+        return JsonResponse({"success": True, "teacher": data})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

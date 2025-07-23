@@ -26,7 +26,8 @@ urlpatterns = [
 
     path('detailed/student/attendance/', detailed_student_attendance, name='detailed_student_attendance'),
 
-
+    path('import_students_csv/', import_students_csv, name='import_students_csv'),
+    
 
     path('sections/save/', create_edit_section, name='create_section'),
     path('sections/save/<int:pk>/', create_edit_section, name='update_section'),
@@ -35,7 +36,6 @@ urlpatterns = [
     path('attendance/details/', attendance_details, name='attendance_details'),
 
 
-    path('students/upload/', upload_students_csv, name='upload_students_csv'),
     path('get_teacher_assignments/',get_teacher_assignments, name='get_teacher_assignments'),
 
 
@@ -47,6 +47,8 @@ urlpatterns = [
     path('teacher/create/', create_teacher, name='create_teacher'),
     path('teachers/update/<int:teacher_id>/', update_teacher, name='update_teacher'),
     path('teacher/delete/<int:id>/', delete_teacher, name='delete_teacher'),
+    path("teachers/detail/<int:teacher_id>/", teacher_detail, name="teacher_detail"),
+
 
 
     #Teacher dashboard
@@ -54,12 +56,10 @@ urlpatterns = [
     path('student/attendance/', attendance, name='attendance'),
     path('submit/attendance/', submit_attendance, name='submit_attendance'),
     path('routine/', teacher_routine_view, name='teacher_routine'),
+    path('teacher/profile/', profile, name='profile'),
     
     
 
-    #path('assign_class_teacher/', assign_class_teacher, name='assign_class_teacher'),
-    #path('get_class_teacher/', get_class_teacher, name='get_class_teacher'),
-    path('import_students_csv/', import_students_csv, name='import_students_csv'),
     # path('core',code)
 
 
