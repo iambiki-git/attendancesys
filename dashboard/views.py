@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
-from school.models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
+from school.models import Student, Attendance, Grade, Section, TeacherProfile, Subjects, Routine, Announcement
 from users.models import School
 from django.contrib import messages
 import requests
@@ -129,6 +129,8 @@ def school_dashboard(request):
     grades = Grade.objects.filter(school=school)
     sections = Section.objects.filter(grade__in=grades).order_by('name')
 
+    announcements = Announcement.objects.filter(school=school).order_by('-created_at')[:5]  # Latest 5 announcements
+
     # Group sections by grade.id → ['A', 'B', ...]
     sections_by_grade = {
         grade.id: list(sections.filter(grade=grade).values_list('name', flat=True))
@@ -203,9 +205,12 @@ def school_dashboard(request):
         'section_absent_data': json.dumps(section_absent),
         'section_late_data': json.dumps(section_late),
         'show_section_chart': show_section_chart,
+
+        'announcements': announcements,
     }
 
     return render(request, 'dashboard/school_dashboard/school_admin_dashboard.html', context)
+
 
 
 
@@ -342,13 +347,13 @@ import json
 def create_student(request):
     if request.method == "POST":
         try:
-            full_name = request.POST.get('full_name')
-            roll_no = request.POST.get('roll_no')
-            grade_id = request.POST.get('grade_id')
-            section_id = request.POST.get('section_id')
+            full_name = request.POST.get('full_name', '').strip()
+            roll_no = request.POST.get('roll_no', '').strip()
+            grade_id = request.POST.get('grade_id', '').strip()
+            section_id = request.POST.get('section_id', '').strip()
             father_name = request.POST.get('father_name', '').strip()
             mother_name = request.POST.get('mother_name', '').strip()
-            dob = request.POST.get('dob')
+            dob = request.POST.get('dob', '').strip() 
             
             address = request.POST.get('address', '').strip()
             parents_contact = request.POST.get('parents_contact', '').strip()
@@ -1173,7 +1178,7 @@ def add_subject(request):
         messages.error(request, 'Subject name cannot be empty.')
         return redirect('subjects')
     
-    if Subjects.objects.filter(name=subject_name, school=school).exists():
+    if Subjects.objects.filter(name=subject_name, school=school, grade_id=grade_id).exists():
         messages.error(request, 'This subject is already exists.')
         return redirect('subjects')
 

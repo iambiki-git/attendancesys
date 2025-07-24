@@ -117,3 +117,34 @@ class Routine(models.Model):
 
     def __str__(self):
         return f"{self.grade} {self.section} | {self.day} P{self.period_number} - {self.subject} ({self.teacher})"
+
+
+
+
+class Announcement(models.Model):
+    ANNOUNCEMENT_TYPES = [
+        ('general', 'General'),
+        ('event', 'Event'),
+        ('exam', 'Exam'),
+        ('holiday', 'Holiday'),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    type = models.CharField(max_length=20, choices=ANNOUNCEMENT_TYPES, default='general')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+   

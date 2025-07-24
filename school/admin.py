@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
+from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects, Routine, Announcement
 
 
 @admin.register(Grade)
@@ -43,8 +43,14 @@ class AttendanceAdmin(admin.ModelAdmin):
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'grade', 'school')
 
-from school.models import Routine
 @admin.register(Routine)
 class RoutineEntryAdmin(admin.ModelAdmin):
     list_display = ('grade', 'section', 'day', 'period_number', 'subject', 'teacher')
     list_filter = ('grade', 'section', 'day', 'teacher')
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'type', 'school', 'created_at')
+    search_fields = ('title', 'description')
+    list_filter = ('type', 'school')
