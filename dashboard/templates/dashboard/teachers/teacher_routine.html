@@ -26,7 +26,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
     <div class="bg-white p-6 rounded-xl shadow-sm border border-purple-200 hover:shadow-md transition-shadow duration-200">
       <div class="flex items-center gap-4">
-        <div class="p-3 rounded-lg bg-indigo-50 text-indigo-600">
+        <div class="p-3 rounded-lg bg-indigo-100 text-indigo-600">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
@@ -82,91 +82,49 @@
         </div>
       </div>
 
-      {% comment %} <div class="divide-y divide-gray-100">
-        {% for r in routines %}
-        <div class="p-6 hover:bg-indigo-50/10 transition group">
-          <div class="flex items-start gap-4">
-            <!-- Period circle & time -->
-            <div class="flex flex-col items-center min-w-[70px]">
-              <span class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shadow-sm">
-                P{{ r.period_number }}
-              </span>
-              <span class="mt-2 text-[11px] font-medium text-indigo-500">
-                {% cycle '8:00-8:45' '8:45-9:30' '9:30-10:15' '10:30-11:15' '11:15-12:00' '12:00-12:45' %}
-              </span>
-            </div>
-
-            <!-- Main class info and actions -->
-            <div class="flex-1">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <!-- Subject & Grade Info -->
-                <div>
-                  <div class="flex items-center gap-2">
-                    <div class="h-3 w-3 rounded-full" style="background: #{{ r.subject.color|default:'6366f1' }}"></div>
-                    <h3 class="font-semibold text-gray-900 text-base">{{ r.subject.name }}</h3>
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">
-                    🎓 Grade {{ r.grade.grade_number }} - {{ r.section.name }} &nbsp;&nbsp; 🏫 {{ r.room_number|default:"Room N/A" }}
-                  </div>
-                </div>
-
-                <!-- Action -->
-                {% if forloop.first %}
-                  <div class="mt-2 sm:mt-0">
-                    <a href="{% url 'attendance' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
-                      ✅ Take Attendance
-                    </a>
-                  </div>
-                {% endif %}
-
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div> {% endcomment %}
+     
       <div class="overflow-x-auto rounded-xl shadow border border-gray-200 bg-white">
-  <table class="min-w-full text-sm text-gray-700">
-    <thead class="bg-indigo-50 text-indigo-800 text-left text-xs uppercase tracking-wider">
-      <tr>
-        <th class="px-6 py-4 font-semibold">Period</th>
-        <th class="px-6 py-4 font-semibold">Time</th>
-        <th class="px-6 py-4 font-semibold">Subject</th>
-        <th class="px-6 py-4 font-semibold">Grade</th>
-        <th class="px-6 py-4 font-semibold">Section</th>
-        <th class="px-6 py-4 font-semibold text-center">Action</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-100">
-      {% for r in routines %}
-      <tr class="hover:bg-indigo-50/30 transition">
-        <td class="px-6 py-4 font-medium">P{{ r.period_number }}</td>
-        <td class="px-6 py-4 text-gray-600">
-          {% cycle '8:00–8:45' '8:45–9:30' '9:30–10:15' '10:30–11:15' '11:15–12:00' '12:00–12:45' %}
-        </td>
-        <td class="px-6 py-4">{{ r.subject.name }}</td>
-        <td class="px-6 py-4">Grade {{ r.grade.grade_number }}</td>
-        <td class="px-6 py-4">{{ r.section.name }}</td>
-        <td class="px-6 py-4 text-center">
-          {% if forloop.first %}
-          <a href="{% url 'attendance' %}"
-             class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M5 13l4 4L19 7" />
-            </svg>
-            Take Attendance
-          </a>
-          {% else %}
-          <span class="text-gray-400 text-xs">—</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+        <table class="min-w-full text-sm text-gray-700">
+          <thead class="bg-indigo-50 text-indigo-800 text-left text-xs uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-4 font-semibold">Period</th>
+              {% comment %} <th class="px-6 py-4 font-semibold">Time</th> {% endcomment %}
+              <th class="px-6 py-4 font-semibold">Subject</th>
+              <th class="px-6 py-4 font-semibold">Grade</th>
+              <th class="px-6 py-4 font-semibold">Section</th>
+              <th class="px-6 py-4 font-semibold text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for r in routines %}
+            <tr class="hover:bg-indigo-50/30 transition">
+              <td class="px-6 py-4 font-medium">P{{ r.period_number }}</td>
+              {% comment %} <td class="px-6 py-4 text-gray-600">
+                {% cycle '8:00–8:45' '8:45–9:30' '9:30–10:15' '10:30–11:15' '11:15–12:00' '12:00–12:45' %}
+              </td> {% endcomment %}
+              <td class="px-6 py-4">{{ r.subject.name }}</td>
+              <td class="px-6 py-4">Grade {{ r.grade.grade_number }}</td>
+              <td class="px-6 py-4">{{ r.section.name }}</td>
+              <td class="px-6 py-4 text-center">
+                {% if forloop.first %}
+                <a href="{% url 'attendance' %}"
+                  class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M5 13l4 4L19 7" />
+                  </svg>
+                  Take Attendance
+                </a>
+                {% else %}
+                <span class="text-gray-400 text-xs">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
 
       {% else %}
