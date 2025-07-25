@@ -93,15 +93,15 @@
         Attendance
       </a>
       <a href="{% url 'teacher_routine' %}" 
-        class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+        class="{% if request.resolver_match.url_name == 'teacher_routine' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Routine
       </a>
       <a href="#" 
         class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Assignments
       </a>
-      <a href="#" 
-        class="{% if request.resolver_match.url_name == 'announcement' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+      <a href="{% url 'teacher_announcement' %}" 
+        class="{% if request.resolver_match.url_name == 'teacher_announcement' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Announcement
       </a>
 

@@ -129,7 +129,7 @@ def school_dashboard(request):
     grades = Grade.objects.filter(school=school)
     sections = Section.objects.filter(grade__in=grades).order_by('name')
 
-    announcements = Announcement.objects.filter(school=school).order_by('-created_at')[:5]  # Latest 5 announcements
+    announcements = Announcement.objects.filter(school=school).order_by('-created_at')[:2]  # Latest 2 announcements
 
     # Group sections by grade.id → ['A', 'B', ...]
     sections_by_grade = {
@@ -1981,3 +1981,146 @@ def teacher_detail(request, teacher_id):
         return JsonResponse({"success": True, "teacher": data})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+
+
+# def create_announcement(request):
+#     if request.method == "POST":
+#         title = request.POST.get('title')
+#         description = request.POST.get('description')
+#         type = request.POST.get('type') or 'general'
+
+#         school = request.user.school
+
+#         if not title or not description:
+#             messages.error(request, "Title and description are required.")
+#             return redirect('school_admin_dashboard')
+        
+#         access_token = get_valid_access_token(request)
+#         if not access_token:
+#             messages.error(request, "Session expired. Please log in again.")
+#             return redirect('login')
+        
+#         api_url = f"{settings.API_BASE_URL}announcements/"
+#         headers = {
+#             'Authorization': f'Bearer {access_token}',
+#             'Content-Type': 'application/json',
+#         }
+
+#         payload = {
+#             'title': title,
+#             'description': description,
+#             'type': type,
+#             'school': school.id
+#         }
+
+#         try:
+#             response = requests.post(api_url, json=payload, headers=headers)
+#             if response.status_code == 201:
+#                 messages.success(request, "✅ Announcement created successfully.")
+#             else:
+#                 try:
+#                     detail = response.json()
+#                 except Exception:
+#                     detail = response.text
+#                 messages.error(request, f"❌ API Error: {detail}")
+#         except requests.exceptions.RequestException as e:
+#             messages.error(request, f"❌ Failed to connect to API: {str(e)}")
+
+#         return redirect('school_admin_dashboard')  # <- For POST success/failure
+
+#     return redirect('school_admin_dashboard')  # <- For GET or other methods
+
+
+def create_announcement(request):
+    if request.method == "POST":
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        type = request.POST.get('type') or 'general'
+
+        user = request.user
+        if not hasattr(user, 'school'):
+            messages.error(request, "You must be associated with a school.")
+            return redirect('school_admin_dashboard')
+
+        if not title or not description:
+            messages.error(request, "Title and description are required.")
+            return redirect('school_admin_dashboard')
+
+        # ✅ Save to database directly
+        Announcement.objects.create(
+            title=title,
+            description=description,
+            type=type,
+            school=user.school,
+            created_by=user
+        )
+
+        messages.success(request, "✅ Announcement created successfully.")
+        return _redirect_user(user)
+
+    return redirect('login')
+
+
+def delete_announcement(request, pk):
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method.")
+        return _redirect_user(request.user)
+
+    user = request.user
+    if not hasattr(user, 'school'):
+        messages.error(request, "You are not associated with any school.")
+        return redirect('login')
+
+    announcement = get_object_or_404(Announcement, pk=pk, school=user.school)
+
+    # Optional: Only allow the creator or school admin to delete
+    if not (user.is_school_admin or user == announcement.created_by):
+        messages.error(request, "You are not authorized to delete this announcement.")
+        return _redirect_user(user)
+
+    announcement.delete()
+    messages.success(request, "✅ Announcement deleted successfully.")
+    return _redirect_user(user)
+
+
+
+@require_POST
+def update_announcement(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk, school=request.user.school)
+    title = request.POST.get('title')
+    description = request.POST.get('description')
+    type = request.POST.get('type') or 'general'
+    user = request.user
+
+    if not title:
+        messages.error(request, "Title is required.")
+        return _redirect_user(user)
+
+    announcement.title = title
+    announcement.description = description
+    announcement.type = type
+    announcement.save()
+
+    messages.success(request, "✅ Announcement updated successfully.")  
+    return _redirect_user(user)
+
+
+def _redirect_user(user):
+    if user.is_school_admin:
+        return redirect('school_admin_dashboard')
+    elif user.is_teacher:
+        return redirect('teacher_announcement')
+    return redirect('/')
+
+def teacher_announcement(request):
+    school = request.user.school
+    announcements_list = Announcement.objects.filter(school=school).order_by('-created_at')
+
+    paginator = Paginator(announcements_list, 3)  # Show 5 announcements per page
+    page_number = request.GET.get('page')
+    announcements = paginator.get_page(page_number)
+
+    context = {
+        'announcements': announcements,
+    }
+    return render(request, 'dashboard/teachers/teacher_announcement.html', context)

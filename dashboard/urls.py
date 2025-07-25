@@ -62,5 +62,12 @@ urlpatterns = [
 
     # path('core',code)
 
+    path('create/announcement/', create_announcement, name='create_announcement'),
+    path('delete/announcement/<int:pk>/', delete_announcement, name='delete_announcement'),
+    path('update/announcement/<int:pk>/', update_announcement, name='update_announcement'),
+
+    path('teacher/announcement/', teacher_announcement, name='teacher_announcement'),
+
+
 
 ]
