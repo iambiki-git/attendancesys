@@ -69,3 +69,21 @@ class SubjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(school=user.school)
 
+from .models import Announcement
+from .serializers import AnnouncementSerializer
+from rest_framework.exceptions import PermissionDenied
+class AnnouncementViewSet(viewsets.ModelViewSet):
+    serializer_class = AnnouncementSerializer
+    permission_classes = [IsAuthenticatedSchoolUser]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Return announcements for the user's school only
+        return Announcement.objects.filter(school=user.school)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not hasattr(user, 'school'):
+            raise PermissionDenied("User is not associated with any school.")
+        serializer.save(school=user.school, created_by=user)
+    

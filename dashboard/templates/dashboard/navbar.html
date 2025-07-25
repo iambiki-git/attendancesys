@@ -93,15 +93,15 @@
         Attendance
       </a>
       <a href="{% url 'teacher_routine' %}" 
-        class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+        class="{% if request.resolver_match.url_name == 'teacher_routine' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Routine
       </a>
       <a href="#" 
         class="{% if request.resolver_match.url_name == 'assignments' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Assignments
       </a>
-      <a href="#" 
-        class="{% if request.resolver_match.url_name == 'announcement' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+      <a href="{% url 'teacher_announcement' %}" 
+        class="{% if request.resolver_match.url_name == 'teacher_announcement' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Announcement
       </a>
 
@@ -128,6 +128,9 @@
           
           <!-- Dropdown menu -->
           <div class="origin-top-right absolute right-0 mt-2 w-48 z-10 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1" id="user-menu">
+            {% if request.user.is_teacher %}
+            <a href="{% url 'profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Profile</a>
+            {% endif %}
             <a href="{% url 'settings' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Settings</a>
             <a href="{% url 'logout_view' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">Sign out</a>
           </div>  

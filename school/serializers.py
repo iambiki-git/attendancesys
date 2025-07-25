@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects
+from .models import Student, Attendance, Grade, Section, TeacherProfile, Subjects, Announcement, Routine, School
 
 class GradeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,7 +17,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['id', 'name', 'grade', 'grade_name', 'section', 'section_name', 'roll_number']
+        fields = ['id', 'name', 'grade', 'grade_name', 'section', 'section_name', 'roll_number', 'father_name', 'mother_name', 'dob', 'address', 'parents_contact']
 
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
@@ -47,3 +47,24 @@ class SubjectSerializer(serializers.ModelSerializer):
 # class RoutineSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         fields = '__all__'
+
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    school_name = serializers.CharField(source='school.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = Announcement
+        fields = [
+            'id',
+            'title',
+            'description',
+            'type',
+            'created_at',
+            'updated_at',
+            'school',
+            'school_name',
+            'created_by',
+            'created_by_name',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'school_name', 'created_by_name']

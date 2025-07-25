@@ -32,6 +32,14 @@ class Student(models.Model):
     grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True, blank=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True)
     roll_number = models.PositiveIntegerField()
+    father_name = models.CharField(max_length=100, blank=True, null=True)
+    mother_name = models.CharField(max_length=100, blank=True, null=True)
+    dob = models.DateField(blank=True, null=True)  # Date of Birth
+    address = models.TextField(blank=True, null=True)
+    parents_contact = models.CharField(max_length=15, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('school', 'grade', 'section', 'roll_number')
 
     def __str__(self):
         return self.name
@@ -41,6 +49,12 @@ from django.conf import settings
 class TeacherProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     school = models.ForeignKey(School, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    dob = models.DateField(blank=True, null=True)  # Date of Birth
+    address = models.TextField(blank=True, null=True)
+    edu_qualification = models.CharField(max_length=100, blank=True, null=True)  # Educational Qualification
+    specialization = models.CharField(max_length=100, blank=True, null=True)  # Specialization
+    year_of_experience = models.PositiveIntegerField(default=0, blank=True, null=True)  # Years of Experience
 
     # 👉 Specific class teacher role
     grade = models.ForeignKey(
@@ -103,3 +117,34 @@ class Routine(models.Model):
 
     def __str__(self):
         return f"{self.grade} {self.section} | {self.day} P{self.period_number} - {self.subject} ({self.teacher})"
+
+
+
+
+class Announcement(models.Model):
+    ANNOUNCEMENT_TYPES = [
+        ('general', 'General'),
+        ('event', 'Event'),
+        ('exam', 'Exam'),
+        ('holiday', 'Holiday'),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    type = models.CharField(max_length=20, choices=ANNOUNCEMENT_TYPES, default='general')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+
+
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+   
