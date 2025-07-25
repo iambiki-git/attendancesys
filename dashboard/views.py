@@ -151,7 +151,7 @@ def school_dashboard(request):
     overall_present, overall_absent, overall_late = [], [], []
     for day in week_days:
         qs = Attendance.objects.filter(student__school=school, date=day)
-        overall_present.append(qs.filter(status='Present').count())
+        overall_present.append(qs.filter(status__in=['Present', 'Late']).count())
         overall_absent.append(qs.filter(status='Absent').count())
         overall_late.append(qs.filter(status='Late').count())
 
@@ -179,7 +179,7 @@ def school_dashboard(request):
                 student__section=selected_section,
                 date=day
             )
-            section_present.append(qs.filter(status='Present').count())
+            section_present.append(qs.filter(status__in=['Present', 'Late']).count())
             section_absent.append(qs.filter(status='Absent').count())
             section_late.append(qs.filter(status='Late').count())
 
