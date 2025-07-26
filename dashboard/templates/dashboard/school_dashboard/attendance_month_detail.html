@@ -1,0 +1,73 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow">
+    <div class="no-print mb-4 text-right">
+  <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
+    Print 
+  </button>
+</div>
+
+  <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+    🗓️ {{ month }} {{ year }} – Attendance for {{ student.name }}
+  </h2>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 text-center">
+  <div class="bg-green-50 text-green-700 px-4 py-3 rounded-lg border border-green-100">
+    <div class="text-xs font-medium uppercase">Present</div>
+    <div class="text-xl font-bold">{{ present }}</div>
+  </div>
+  <div class="bg-red-50 text-red-700 px-4 py-3 rounded-lg border border-red-100">
+    <div class="text-xs font-medium uppercase">Absent</div>
+    <div class="text-xl font-bold">{{ absent }}</div>
+  </div>
+  <div class="bg-yellow-50 text-yellow-700 px-4 py-3 rounded-lg border border-yellow-100">
+    <div class="text-xs font-medium uppercase">Late</div>
+    <div class="text-xl font-bold">{{ late }}</div>
+  </div>
+  <div class="bg-gray-100 text-gray-800 px-4 py-3 rounded-lg border border-gray-200">
+    <div class="text-xs font-medium uppercase">Total</div>
+    <div class="text-xl font-bold">{{ total }}</div>
+  </div>
+</div>
+
+
+  <table class="w-full table-auto text-sm border">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="border px-4 py-2 text-left">Date</th>
+        <th class="border px-4 py-2 text-left">Day</th>
+        <th class="border px-4 py-2 text-left">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in daily_records %}
+      <tr>
+        <td class="border px-4 py-2">{{ record.date }}</td>
+        <td class="border px-4 py-2">{{ record.day }}</td>  {# <-- new column #}
+
+        <td class="border px-4 py-2">
+          {% if record.status == "Present" %}
+            <span class="text-green-600 font-semibold">✅ Present</span>
+          {% elif record.status == "Absent" %}
+            <span class="text-red-600 font-semibold">❌ Absent</span>
+          {% elif record.status == "Late" %}
+            <span class="text-yellow-600 font-semibold">⚠️ Late</span>
+          {% else %}
+            {{ record.status }}
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2" class="text-center text-gray-500 py-4">No attendance data for this month.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="mt-6">
+    <a href="javascript:history.back()" class="text-indigo-600 hover:underline text-sm">← Back to Report</a>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,267 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+
+  <!-- Printable Metadata -->
+    <div class="text-center mb-6" id="reportMetaBlock" style="display: none;">
+    <h2 class="text-2xl font-bold text-gray-800">📋 Attendance Report</h2>
+    <p id="reportMetaText" class="text-sm text-gray-600 mt-1">Grade: —, Section: —, Date: —</p>
+    <p class="text-xs text-gray-400" id="printedOn"></p>
+    </div>
+
+  <!-- Filters -->
+    <form id="reportForm" class="no-print bg-white p-6 rounded-xl shadow mb-6 grid md:grid-cols-3 gap-4">
+    <!-- Grade -->
+    <div>
+      <label for="gradeSelect" class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+    <select id="gradeSelect" name="grade_id"
+        class="w-full border border-gray-300 bg-white text-gray-800 rounded-lg px-3 py-2">
+        <option value="">Select Grade</option>
+        {% for grade in grades %}
+            <option value="{{ grade.id }}">{{ grade.grade_number }}</option>
+        {% endfor %}
+    </select>
+    </div>
+
+    <!-- Section -->
+    <div>
+      <label for="sectionSelect" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+     <select id="sectionSelect" name="section_id"
+        class="w-full h-10 px-3 py-2 border border-gray-300 bg-white text-gray-800 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option value="">Select Section</option>
+    </select>
+
+    </div>
+
+    <!-- Date Range -->
+    <div>
+      <label for="dateRange" class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+      <select id="dateRange" name="range" class="w-full border-gray-300 rounded-lg">
+        <option value="today">Today</option>
+        <option value="this_week">This Week</option>
+        <option value="this_month">This Month</option>
+        <option value="custom">Custom Range</option>
+      </select>
+    </div>
+
+    <!-- Custom Range Dates -->
+    <div class="md:col-span-1" id="customRange" style="display: none;">
+      <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+      <input type="date" id="startDate" name="start_date" class="w-full border-gray-300 rounded-lg">
+    </div>
+    <div class="md:col-span-1" id="customRange2" style="display: none;">
+      <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+      <input type="date" id="endDate" name="end_date" class="w-full border-gray-300 rounded-lg">
+    </div>
+
+    <!-- Generate Button -->
+    <div class="md:col-span-3 text-right">
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-lg">Generate Report</button>
+    </div>
+  </form>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-green-50 p-4 rounded-xl text-center shadow">
+      <div class="text-green-600 text-sm">Present</div>
+      <div id="presentCount" class="text-2xl font-bold">--</div>
+    </div>
+    <div class="bg-red-50 p-4 rounded-xl text-center shadow">
+      <div class="text-red-600 text-sm">Absent</div>
+      <div id="absentCount" class="text-2xl font-bold">--</div>
+    </div>
+    <div class="bg-yellow-50 p-4 rounded-xl text-center shadow">
+      <div class="text-yellow-600 text-sm">Late</div>
+      <div id="lateCount" class="text-2xl font-bold">--</div>
+    </div>
+  </div>
+
+  <!-- Report Table -->
+  <div class="overflow-x-auto bg-white rounded-xl shadow">
+    <table class="min-w-full table-auto text-sm text-left text-gray-600">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="px-4 py-2">Name</th>
+          <th class="px-4 py-2">Roll No</th>
+          <th class="px-4 py-2">Date</th>
+          <th class="px-4 py-2">Status</th>
+        </tr>
+      </thead>
+      <tbody id="reportTableBody">
+        <!-- dynamically filled -->
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- Export Buttons -->
+  <div class="no-print mt-4 flex justify-end gap-2">
+    <button onclick="exportCSV()" class="bg-blue-500 text-white px-4 py-2 rounded">Export CSV</button>
+    <button onclick="exportPDF()" class="bg-gray-700 text-white px-4 py-2 rounded">Export PDF</button>
+    <button onclick="printReport()" class="bg-green-600 text-white px-4 py-2 rounded">🖨️ Print</button>
+ </div>
+
+</div>
+
+<style>
+  @media print {
+    body { 
+        padding: 2rem; 
+        font-family: sans-serif; 
+        color: #111; 
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; }
+    th { background-color: #f3f4f6; text-align: left; }
+    h2 { margin-bottom: 0.5rem; }
+    p { margin: 0.25rem 0; }
+    .no-print { display: none !important; }
+  }
+</style>
+
+
+
+<script>
+
+document.getElementById("gradeSelect").addEventListener("change", async function () {
+  const gradeId = this.value;
+  const sectionSelect = document.getElementById("sectionSelect");
+  sectionSelect.innerHTML = '<option value="">Loading...</option>';
+
+  if (!gradeId) {
+    sectionSelect.innerHTML = '<option value="">Select Section</option>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/ajax/get-sections/?grade_id=${gradeId}`);
+    const sections = await res.json();
+
+    sectionSelect.innerHTML = '<option value="">Select Section</option>';
+    sections.forEach(sec => {
+      const option = document.createElement('option');
+      option.value = sec.id;
+      option.textContent = sec.name;
+      sectionSelect.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+    sectionSelect.innerHTML = '<option value="">Error loading sections</option>';
+  }
+});
+
+
+
+
+document.getElementById("dateRange").addEventListener("change", function () {
+  const showCustom = this.value === "custom";
+  document.getElementById("customRange").style.display = showCustom ? "block" : "none";
+  document.getElementById("customRange2").style.display = showCustom ? "block" : "none";
+});
+
+document.getElementById("reportForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  const gradeId = document.getElementById("gradeSelect").value;
+  const sectionId = document.getElementById("sectionSelect").value;
+  const range = document.getElementById("dateRange").value;
+  const startDate = document.getElementById("startDate").value;
+  const endDate = document.getElementById("endDate").value;
+
+  if (!gradeId || !sectionId) {
+    alert("Please select both grade and section.");
+    return;
+  }
+
+  let url = `/attendance/report/?grade_id=${gradeId}&section_id=${sectionId}&range=${range}`;
+  if (range === "custom") {
+    if (!startDate || !endDate) {
+      alert("Please select both start and end dates.");
+      return;
+    }
+    url += `&start_date=${startDate}&end_date=${endDate}`;
+  }
+
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (!json.success) {
+      alert("❌ " + (json.error || "Failed to generate report."));
+      return;
+    }
+
+    // Update summary stats
+    document.getElementById("presentCount").textContent = json.summary.Present || 0;
+    document.getElementById("absentCount").textContent = json.summary.Absent || 0;
+    document.getElementById("lateCount").textContent = json.summary.Late || 0;
+
+    // Show report metadata
+    const gradeName = document.getElementById("gradeSelect").selectedOptions[0].textContent;
+    const sectionName = document.getElementById("sectionSelect").selectedOptions[0].textContent;
+    const dateText = range === "custom"
+    ? `From ${startDate} to ${endDate}`
+    : range.replace("_", " ").toUpperCase();
+
+    document.getElementById("reportMetaBlock").style.display = "block";
+    document.getElementById("reportMetaText").textContent = `Grade: ${gradeName}, Section: ${sectionName}, Date: ${dateText}`;
+
+    // Print timestamp
+    const now = new Date();
+    document.getElementById("printedOn").textContent = `Generated on ${now.toLocaleString()}`;
+
+
+    // Render report table
+    const tbody = document.getElementById("reportTableBody");
+    tbody.innerHTML = "";
+
+    if (json.data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-400">No data found</td></tr>`;
+      return;
+    }
+
+    json.data.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="px-4 py-2">${row.name}</td>
+        <td class="px-4 py-2">${row.roll_number}</td>
+        <td class="px-4 py-2">${row.date}</td>
+        <td class="px-4 py-2">${row.status}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to fetch report. Please try again.");
+  }
+});
+
+// print report 
+function printReport() {
+  const reportContent = document.querySelector('.max-w-6xl').innerHTML;
+  const win = window.open('', '', 'width=900,height=700');
+  win.document.write(`
+    <html>
+      <head>
+        <title>Attendance Report</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+          @media print {
+            body { padding: 2rem; font-family: sans-serif; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ccc; padding: 6px 12px; }
+          }
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        ${reportContent}
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
+
+
+</script>
+{% endblock %}

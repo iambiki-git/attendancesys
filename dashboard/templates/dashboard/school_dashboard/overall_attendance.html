@@ -281,18 +281,24 @@
       </div>
 
       <!-- Action -->
-      <a href="{% url 'detailed_student_attendance' %}" class="w-full md:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+      <a href="{% url 'reports' %}" class="w-full md:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
         View Records
         <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 -mr-1 h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
         </svg>
       </a>
+      {% comment %} <a href="{% url 'detailed_student_attendance' %}" class="w-full md:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        View Records
+        <svg xmlns="http://www.w3.org/2000/svg" class="ml-2 -mr-1 h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </a> {% endcomment %}
     </div>
   </div>
 
 
   <!-- Recent Attendance Table -->
-  <div class="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
+  {% comment %} <div class="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
       <h3 class="text-sm font-medium text-gray-700">Recent Attendance Records</h3>
       <button class="text-xs text-blue-500 hover:text-blue-700 flex items-center">
@@ -365,23 +371,10 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </div> {% endcomment %}
   
 </div>
 
-
-{% comment %} modal {% endcomment %}
-  {% comment %} <div id="attendance-modal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50 flex">
-    <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h2 id="modal-title" class="text-lg font-semibold text-gray-700">Details</h2>
-        <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-700">&times;</button>
-      </div>
-      <div id="modal-content" class="text-sm text-gray-600">
-        Loading...
-      </div>
-    </div>
-  </div> {% endcomment %}
 
 <div id="attendance-modal" class="fixed inset-0 hidden z-50 backdrop-blur-sm" onclick="handleBackdropClick(event)">
   <div id="modal-box" class="absolute bg-white w-[380px] rounded-xl shadow-2xl p-5 border border-gray-100"

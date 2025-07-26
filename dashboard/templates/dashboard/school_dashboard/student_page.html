@@ -82,12 +82,24 @@
           class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-md transition duration-200 ease-in-out">
           📥 Import CSV
         </button>
+
+        <!-- Export CSV Button -->
+        <a href="{% url 'export_students_csv' %}?grade_id={{ request.GET.grade_id }}&section_id={{ request.GET.section_id }}"
+          class="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-md transition duration-200 ease-in-out">
+          📤 Export CSV
+        </a>
+
+        <!-- Print View Button -->
+        <a href="{% url 'print_students' %}?grade_id={{ request.GET.grade_id }}&section_id={{ request.GET.section_id }}"
+          target="_blank"
+          class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-md transition duration-200 ease-in-out">
+          🖨️ Print View
+        </a>
+
       {% endif %}
     </div>
 
   </form>
-
-  
   
 
   <!-- Table and Empty State -->
@@ -106,8 +118,8 @@
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+            {% comment %} <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th> {% endcomment %}
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Father's Name</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mother's Name</th>
@@ -124,7 +136,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900 student-name">{{ student.name }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              {% comment %} <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                   Grade {{ student.grade.grade_number }}
                 </span>
@@ -133,7 +145,7 @@
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                   {{ student.section.name }}
                 </span>
-              </td>
+              </td> {% endcomment %}
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-roll">{{ student.roll_number }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-fatherName">{{ student.father_name }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 student-motherName">{{ student.mother_name }}</td>
@@ -171,6 +183,24 @@
   {% endif %}
 </div>
 
+<!-- Modal for Map csv column-->
+<div id="mappingModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center px-4">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto">
+    <h2 class="text-lg font-semibold mb-4">🧩 Map CSV Columns</h2>
+    <form id="mappingForm">
+      <div id="mappingFields" class="grid gap-4 mb-6"></div>
+      <div class="flex justify-end space-x-2 sticky bottom-0 bg-white pt-3 pb-1">
+        <button type="button" onclick="submitMappedImport()" class="bg-indigo-600 text-white px-4 py-2 rounded">
+          Import
+        </button>
+        <button type="button" onclick="closeMappingModal()" class="text-gray-500 px-4 py-2">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 <!-- Template for new student row (hidden by default) -->
 <template id="newStudentRowTemplate">
@@ -181,7 +211,7 @@
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="text" id="newStudentName" class="border px-2 py-1 rounded text-sm w-full" placeholder="Full Name">
     </td>
-    <td class="px-6 py-4 whitespace-nowrap">
+    {% comment %} <td class="px-6 py-4 whitespace-nowrap">
       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
         Grade {{ selected_grade_obj.grade_number }}
       </span>
@@ -190,7 +220,7 @@
       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
         {{ selected_section_obj.name }}
       </span>
-    </td>
+    </td> {% endcomment %}
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="number" id="newStudentRollNo" class="border px-2 py-1 rounded text-sm w-full" placeholder="Roll No">
     </td>
@@ -238,7 +268,7 @@
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="text" id="editStudentName" class="border px-2 py-1 rounded text-sm w-full">
     </td>
-    <td class="px-6 py-4 whitespace-nowrap">
+    {% comment %} <td class="px-6 py-4 whitespace-nowrap">
       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
         Grade {{ selected_grade_obj.grade_number }}
       </span>
@@ -247,7 +277,7 @@
       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
         {{ selected_section_obj.name }}
       </span>
-    </td>
+    </td> {% endcomment %}
     <td class="px-6 py-4 whitespace-nowrap">
       <input type="number" id="editStudentRollNo" class="border px-2 py-1 rounded text-sm w-full">
     </td>
@@ -292,19 +322,6 @@
   <input type="hidden" name="section_id" id="deleteSectionId">
 </form>
 
-<div id="toast-container" class="fixed bottom-5 right-5 space-y-3 z-50 flex flex-col items-end">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="toast px-4 py-3 rounded shadow text-white 
-        {% if message.tags == 'success' %} bg-green-500 
-        {% elif message.tags == 'error' %} bg-red-500 
-        {% elif message.tags == 'warning' %} bg-yellow-500 text-black
-        {% else %} bg-blue-500 {% endif %}">
-        {{ message }}
-      </div>
-    {% endfor %}
-  {% endif %}
-</div>
 
 <script>
   const sectionsByGrade = {{ sections_by_grade|safe }};
@@ -620,33 +637,7 @@
     });
 }
 
-// Helper function to show success message
-{% comment %} function showSuccessMessage(message) {
-    // Create or find message container
-    let messageContainer = document.getElementById('success-message-container');
-    if (!messageContainer) {
-        messageContainer = document.createElement('div');
-        messageContainer.id = 'success-message-container';
-        messageContainer.style.position = 'fixed';
-        messageContainer.style.top = '20px';
-        messageContainer.style.right = '20px';
-        messageContainer.style.zIndex = '1000';
-        document.body.appendChild(messageContainer);
-    }
 
-    // Create message element
-    const messageElement = document.createElement('div');
-    messageElement.className = 'bg-green-500 text-white px-4 py-2 rounded shadow-lg mb-2';
-    messageElement.textContent = message;
-    
-    // Add to container
-    messageContainer.appendChild(messageElement);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        messageElement.remove();
-    }, 3000);
-} {% endcomment %}
  function showSuccessMessage(message) {
   const container = document.getElementById("toast-container");
 
@@ -712,19 +703,6 @@ function updateStudentRowInTable(studentId, name, rollNo, fatherName, motherName
     }
   }
 
-  {% comment %} TOAST SCRIPT {% endcomment %}
-    document.addEventListener("DOMContentLoaded", function() {
-    const toasts = document.querySelectorAll('.toast');
-    toasts.forEach(toast => {
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-x-10');
-      }, 3000); // 3 sec visible
-
-      setTimeout(() => {
-        toast.remove();
-      }, 4000); // Remove after fade
-    });
-  });
 
   function getCookie(name) {
   let cookieValue = null;
@@ -743,7 +721,7 @@ function updateStudentRowInTable(studentId, name, rollNo, fatherName, motherName
 }
 
 
-function triggerCSVImport() {
+{% comment %} function triggerCSVImport() {
   if (!gradeSelect.value || !sectionSelect.value) {
     alert("⚠️ Please select both Grade and Section before importing.");
     return;
@@ -795,7 +773,132 @@ function triggerCSVImport() {
       alert('❌ Network error during CSV import.');
     });
   };
+} {% endcomment %}
+
+function triggerCSVImport() {
+  const fileInput = document.getElementById('csvFileInput');
+  fileInput.click();
+  fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('csv_file', file);
+
+    fetch("{% url 'preview_csv_columns' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: formData,
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showMappingModal(data.headers, file, data.unmatched_fields, data.matched_fields);
+      } else {
+        alert("❌ Failed to preview columns: " + data.error);
+      }
+    });
+  };
 }
+
+
+const requiredFields = ['name', 'roll_number', 'father_name', 'mother_name', 'dob', 'address', 'parents_contact'];
+let currentCSVFile = null; 
+
+function showMappingModal(headers, file, unmatchedFields = [], matchedFields = {}) {
+  currentCSVFile = file;
+  const container = document.getElementById('mappingFields');
+  container.innerHTML = '';
+
+  if (!headers || headers.length === 0) {
+    alert("❌ No headers found in CSV file.");
+    return;
+  }
+
+  // Show all fields for mapping
+  requiredFields.forEach(field => {
+    const select = document.createElement('select');
+    select.name = field;
+    select.className = "w-full border px-3 py-2 rounded";
+
+    const label = document.createElement('label');
+    label.textContent = `Map for ${field.replace('_', ' ').toUpperCase()}`;
+    label.className = "text-sm font-medium text-gray-700 mb-1 block";
+
+    const wrapper = document.createElement('div');
+    wrapper.className = "mb-4";
+    wrapper.appendChild(label);
+    wrapper.appendChild(select);
+
+    select.appendChild(new Option('-- Select Column --', ''));
+    headers.forEach(header => {
+      const option = new Option(header, header);
+      if (matchedFields[field] === header) {
+        option.selected = true; // pre-select auto-match
+      }
+      select.appendChild(option);
+    });
+
+    container.appendChild(wrapper);
+  });
+
+  // Show the modal
+  document.getElementById('mappingModal').classList.remove('hidden');
+}
+
+
+function closeMappingModal() {
+  document.getElementById('mappingModal').classList.add('hidden');
+}
+
+
+function submitMappedImport(preMatched = {}) {
+  let currentMappedFields = {};
+  const form = document.getElementById('mappingForm');
+  const formData = new FormData();
+  formData.append('csv_file', currentCSVFile);
+  formData.append('grade_id', gradeSelect.value);
+  formData.append('section_id', sectionSelect.value);
+
+  // ✅ Always add auto-mapped fields (e.g. name, roll_number)
+  for (let key of requiredFields) {
+    const autoMapped = preMatched[key];
+    if (autoMapped) {
+      formData.set(`map_${key}`, autoMapped);  // Use set instead of append
+    }
+  }
+
+  // ✅ Override with manually selected fields from dropdowns (if modal shown)
+  const selects = form.querySelectorAll('select');
+  selects.forEach((field) => {
+    if (field.name && field.value) {
+      formData.set(`map_${field.name}`, field.value);
+    }
+  });
+
+  // ✅ Safety check before sending
+  if (!formData.get('map_name') || !formData.get('map_roll_number')) {
+    alert("❌ Required fields 'name' and 'roll_number' are missing.");
+    return;
+  }
+
+  fetch("{% url 'import_students_csv' %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    body: formData,
+  })
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert("❌ Import Failed: " + data.error);
+    }
+  });
+}
+
+
 
 </script>
 {% endblock %}

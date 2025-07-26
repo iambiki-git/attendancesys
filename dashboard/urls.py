@@ -13,6 +13,8 @@ urlpatterns = [
     path('subjects/add', add_subject, name='add_subject'),
     path('subject/edit/<int:pk>/', edit_subject, name='edit_subject'),
     path('subject/delete/<int:pk>/', delete_subject, name='delete_subject'),
+    path('import-subjects/', import_subjects_ajax, name='import_subjects_ajax'),
+
     path('grades/', grades_view, name="grades"),
     path('grades/save/', create_edit_grade, name='create_grade'),
     path('grades/edit/<int:pk>/', create_edit_grade, name='update_grade'),
@@ -27,6 +29,12 @@ urlpatterns = [
     path('detailed/student/attendance/', detailed_student_attendance, name='detailed_student_attendance'),
 
     path('import_students_csv/', import_students_csv, name='import_students_csv'),
+    path('students/preview-csv/', preview_csv_columns, name='preview_csv_columns'),
+    path('export/students/', export_students_csv, name='export_students_csv'),
+    path('print/students/', print_students_view, name='print_students'),
+
+
+
     
 
     path('sections/save/', create_edit_section, name='create_section'),
@@ -67,6 +75,13 @@ urlpatterns = [
     path('update/announcement/<int:pk>/', update_announcement, name='update_announcement'),
 
     path('teacher/announcement/', teacher_announcement, name='teacher_announcement'),
+
+
+    path('reports/', reports_view, name='reports'),
+    path('get_sections_students/', get_sections_and_students, name='get_sections_students'),
+    path("generate-report/", generate_attendance_report, name="generate_attendance_report"),
+    path('attendance/month/<int:student_id>/<str:month_name>/', attendance_month_detail, name='attendance_month_detail'),
+
 
 
 
