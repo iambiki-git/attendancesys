@@ -16,8 +16,8 @@
         <th class="border px-4 py-2">Present</th>
         <th class="border px-4 py-2">Absent</th>
         <th class="border px-4 py-2">Late</th>
-        <th class="border px-4 py-2">Total</th>
-        <th class="border px-4 py-2">Percentage</th>
+        <th class="border px-4 py-2">Total Days</th>
+        {% comment %} <th class="border px-4 py-2">Percentage</th> {% endcomment %}
       </tr>
     </thead>
     <tbody>
@@ -32,13 +32,13 @@
         <td class="border px-4 py-2 text-center">{{ month.absent }}</td>
         <td class="border px-4 py-2 text-center">{{ month.late }}</td>
         <td class="border px-4 py-2 text-center">{{ month.total }}</td>
-        <td class="border px-4 py-2 text-center">
+        {% comment %} <td class="border px-4 py-2 text-center">
           {% if month.percentage != None %}
             {{ month.percentage }}%
           {% else %}
             -
           {% endif %}
-        </td>
+        </td> {% endcomment %}
       </tr>
       {% endfor %}
     </tbody>
