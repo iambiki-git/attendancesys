@@ -225,36 +225,61 @@
 
   // Generate report function
 function generateReport(e) {
-  e.preventDefault();  // Prevent default form submission
+  e.preventDefault();
 
   const form = document.getElementById("reportForm");
   const formData = new FormData(form);
-
-  // ✅ Manually append the selected mode
   const reportMode = document.querySelector('input[name="reportMode"]:checked')?.value;
-  formData.append('reportMode', reportMode);
 
-  const url = "{% url 'generate_attendance_report' %}";
+  const gradeId = formData.get("grade_id");
+  const sectionId = formData.get("section_id");
+  const studentId = formData.get("student_id");
 
-  fetch(url, {
+  // Validate required fields for both modes
+  if (!gradeId) {
+    alert("Please select a Grade.");
+    return;
+  }
+
+  if (!sectionId) {
+    alert("Please select a Section.");
+    return;
+  }
+
+  // Validate only if mode is individual
+  if (reportMode === "individual") {
+    if (!studentId || studentId === "") {
+      alert("Please select a Student.");
+      return;
+    }
+  } else {
+    // If mode is class-wise, remove student_id from FormData
+    formData.delete("student_id");
+  }
+
+  // Always append the mode
+  formData.append("reportMode", reportMode);
+
+  fetch("{% url 'generate_attendance_report' %}", {
     method: "POST",
     headers: {
-      "X-CSRFToken": getCookie('csrftoken'),
+      "X-CSRFToken": getCookie("csrftoken"),
     },
-    body: formData
+    body: formData,
   })
-  .then(res => {
-    if (!res.ok) throw new Error("Failed to fetch report");
-    return res.text();
-  })
-  .then(html => {
-    document.getElementById("reportResult").innerHTML = html;
-  })
-  .catch(err => {
-    console.error("Error generating report:", err);
-    alert("Something went wrong while generating the report.");
-  });
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch report");
+      return res.text();
+    })
+    .then((html) => {
+      document.getElementById("reportResult").innerHTML = html;
+    })
+    .catch((err) => {
+      console.error("Error generating report:", err);
+      alert("Something went wrong while generating the report.");
+    });
 }
+
 
 
   // CSRF helper function

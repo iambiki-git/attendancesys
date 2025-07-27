@@ -2397,12 +2397,139 @@ def get_sections_and_students(request):
     })
 
 
+# from django.http import HttpResponse, HttpResponseBadRequest
+# from django.template.loader import render_to_string
+# from django.views.decorators.csrf import csrf_exempt
+# from calendar import monthrange
+# from datetime import date, timedelta
+# from django.utils import timezone
+
+# @csrf_exempt
+# def generate_attendance_report(request):
+#     if request.method == 'POST':
+#         mode = request.POST.get('reportMode')
+#         grade_id = request.POST.get('grade_id')
+#         section_id = request.POST.get('section_id')
+#         student_id = request.POST.get('student_id')
+#         date_range = request.POST.get('date_range')
+#         start_date = request.POST.get('start_date')
+#         end_date = request.POST.get('end_date')
+
+#         today = timezone.now().date()
+
+#         # ✅ Special case: Individual yearly summary (monthly breakdown)
+#         if mode == 'individual' and student_id and date_range == 'year':
+#             student = Student.objects.get(id=student_id)
+#             grades =  Grade.objects.get(id=grade_id) if grade_id else None
+#             sections = Section.objects.get(id=section_id) if section_id else None
+#             monthly_data = []
+
+#             for month in range(1, 13):
+#                 year = today.year
+#                 first_day = date(year, month, 1)
+#                 last_day = date(year, month, monthrange(year, month)[1])
+
+#                 records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
+#                 present = records.filter(status__in=['Present', 'Late']).count()
+#                 absent = records.filter(status='Absent').count()
+#                 late = records.filter(status='Late').count()
+#                 total = records.count()
+
+#                 # ✅ Add per-day status
+#                 details = [
+#                     {'date': r.date.strftime('%b %d, %Y'), 'status': r.status}
+#                     for r in records
+#                 ]
+
+#                 monthly_data.append({
+#                     'month': first_day.strftime("%B"),
+#                     'present': present,
+#                     'absent': absent,
+#                     'late': late,
+#                     'total': total,
+#                     'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+#                     'details': details,  # ✅ This is what makes the daily table possible
+#                 })
+
+
+#             context = {
+#                 'student': student,
+#                 'monthly_data': monthly_data,
+#                 'mode': 'individual_yearly_summary',
+#                 'grade': grades,
+#                 'section': sections,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+#         # ✅ General case: class-wise or individual daily/weekly/month/custom
+#         if mode == 'class':
+#             students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+#         elif mode == 'individual' and student_id:
+#             students = Student.objects.filter(id=student_id)
+#         else:
+#             students = Student.objects.none()
+
+#         # ✅ Date range logic (required for all non-monthly reports)
+#         if date_range == "today":
+#             start = end = today
+#         elif date_range == "week":
+#             start = today - timedelta(days=today.weekday())
+#             end = today
+#         elif date_range == "month":
+#             start = today.replace(day=1)
+#             end = today
+#         elif date_range == "year":
+#             start = today.replace(month=1, day=1)
+#             end = today
+#         elif date_range == "custom" and start_date and end_date:
+#             start = date.fromisoformat(start_date)
+#             end = date.fromisoformat(end_date)
+#         else:
+#             start = end = today  # fallback if something is missing
+
+#         # ✅ Per student attendance summary
+#         student_data = []
+#         for student in students:
+#             records = Attendance.objects.filter(student=student, date__range=(start, end))
+#             present = records.filter(status__in=['Present', 'Late']).count()
+#             absent = records.filter(status='Absent').count()
+#             late = records.filter(status='Late').count()
+#             total = records.count()
+
+#             student_data.append({
+#                 'student': student,
+#                 'present': present,
+#                 'absent': absent,
+#                 'late': late,
+#                 'total': total,
+#             })
+
+#         context = {
+#             'students': student_data,
+#             'start_date': start,
+#             'end_date': end,
+#             'selected_range': date_range,
+#             'mode': mode,
+#             'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#             'section': Section.objects.get(id=section_id) if section_id else None,
+#             'student': Student.objects.get(id=student_id) if student_id else None,
+#         }
+
+#         html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#         return HttpResponse(html)
+
+#     return HttpResponseBadRequest("Invalid request method")
+
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from calendar import monthrange
 from datetime import date, timedelta
 from django.utils import timezone
+import calendar
+from collections import defaultdict
 
 @csrf_exempt
 def generate_attendance_report(request):
@@ -2417,61 +2544,7 @@ def generate_attendance_report(request):
 
         today = timezone.now().date()
 
-        # ✅ Special case: Individual yearly summary (monthly breakdown)
-        if mode == 'individual' and student_id and date_range == 'year':
-            student = Student.objects.get(id=student_id)
-            grades =  Grade.objects.get(id=grade_id) if grade_id else None
-            sections = Section.objects.get(id=section_id) if section_id else None
-            monthly_data = []
-
-            for month in range(1, 13):
-                year = today.year
-                first_day = date(year, month, 1)
-                last_day = date(year, month, monthrange(year, month)[1])
-
-                records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
-                present = records.filter(status__in=['Present', 'Late']).count()
-                absent = records.filter(status='Absent').count()
-                late = records.filter(status='Late').count()
-                total = records.count()
-
-                # ✅ Add per-day status
-                details = [
-                    {'date': r.date.strftime('%b %d, %Y'), 'status': r.status}
-                    for r in records
-                ]
-
-                monthly_data.append({
-                    'month': first_day.strftime("%B"),
-                    'present': present,
-                    'absent': absent,
-                    'late': late,
-                    'total': total,
-                    'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
-                    'details': details,  # ✅ This is what makes the daily table possible
-                })
-
-
-            context = {
-                'student': student,
-                'monthly_data': monthly_data,
-                'mode': 'individual_yearly_summary',
-                'grade': grades,
-                'section': sections,
-            }
-
-            html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
-            return HttpResponse(html)
-
-        # ✅ General case: class-wise or individual daily/weekly/month/custom
-        if mode == 'class':
-            students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
-        elif mode == 'individual' and student_id:
-            students = Student.objects.filter(id=student_id)
-        else:
-            students = Student.objects.none()
-
-        # ✅ Date range logic (required for all non-monthly reports)
+        # ✅ Date range logic FIRST (to avoid UnboundLocalError)
         if date_range == "today":
             start = end = today
         elif date_range == "week":
@@ -2487,9 +2560,219 @@ def generate_attendance_report(request):
             start = date.fromisoformat(start_date)
             end = date.fromisoformat(end_date)
         else:
-            start = end = today  # fallback if something is missing
+            start = end = today
 
-        # ✅ Per student attendance summary
+        # ✅ INDIVIDUAL YEARLY SUMMARY
+        if mode == 'individual' and student_id and date_range == 'year':
+            student = Student.objects.get(id=student_id)
+            grades = Grade.objects.get(id=grade_id) if grade_id else None
+            sections = Section.objects.get(id=section_id) if section_id else None
+            monthly_data = []
+
+            for month in range(1, 13):
+                year = today.year
+                first_day = date(year, month, 1)
+                last_day = date(year, month, monthrange(year, month)[1])
+
+                records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
+                present = records.filter(status__in=['Present', 'Late']).count()
+                absent = records.filter(status='Absent').count()
+                late = records.filter(status='Late').count()
+                total = records.count()
+
+                monthly_data.append({
+                    'month': first_day.strftime("%B"),
+                    'present': present,
+                    'absent': absent,
+                    'late': late,
+                    'total': total,
+                    'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+                })
+
+            context = {
+                'student': student,
+                'monthly_data': monthly_data,
+                'mode': 'individual_yearly_summary',
+                'grade': grades,
+                'section': sections,
+            }
+
+            html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+            return HttpResponse(html)
+
+        # ✅ INDIVIDUAL WEEKLY SUMMARY
+        if mode == 'individual' and student_id and date_range == 'week':
+            student = Student.objects.get(id=student_id)
+            today = date.today()
+            weekday = today.weekday()  # Monday = 0, Sunday = 6
+
+            # Calculate start of the week (Sunday)
+            sunday_index = (weekday + 1) % 7
+            start_of_week = today - timedelta(days=sunday_index)
+            end_of_week = start_of_week + timedelta(days=6)
+
+            # Generate all 7 days from Sunday to Saturday
+            days = []
+            current_date = start_of_week
+            while current_date <= end_of_week:
+                day_name = current_date.strftime('%a')
+                day_date = current_date.strftime('%Y-%m-%d')
+                days.append({'name': day_name, 'date': day_date})
+                current_date += timedelta(days=1)
+
+            # Prepare daily status dict (only show attendance from today onward)
+            daily_status = {day['name']: '-' for day in days}
+            present = absent = late = total = 0
+
+            records = Attendance.objects.filter(student=student, date__range=(today, end_of_week))
+            for rec in records:
+                day = rec.date.strftime('%a')
+                daily_status[day] = rec.status
+                if rec.status == "Present":
+                    present += 1
+                elif rec.status == "Absent":
+                    absent += 1
+                elif rec.status == "Late":
+                    late += 1
+                total += 1
+
+            student_weekly = {
+                'student': student,
+                'daily': daily_status,
+                'present': present,
+                'absent': absent,
+                'late': late,
+                'total': total,
+                'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+            }
+
+            context = {
+                'student': student,
+                'rec': student_weekly,
+                'days': days,
+                'selected_range': date_range,
+                'mode': mode,
+                'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+                'section': Section.objects.get(id=section_id) if section_id else None,
+                'start_date': start_of_week,
+                'end_date': end_of_week,
+            }
+
+            html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+            return HttpResponse(html)
+
+        
+        
+        # ✅ CLASS OR GENERAL INDIVIDUAL (load students)
+        if mode == 'class':
+            students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+        elif mode == 'individual' and student_id:
+            students = Student.objects.filter(id=student_id)
+        else:
+            students = Student.objects.none()
+
+        # ✅ CLASS WEEKLY SUMMARY
+        if mode == 'class' and date_range == 'week':
+            today = date.today()
+
+            # Step 1: Calculate start of the week (Sunday)
+            weekday = today.weekday()  # Monday = 0, Sunday = 6
+            sunday_index = (weekday + 1) % 7
+            start_of_week = today - timedelta(days=sunday_index)
+            end_of_week = start_of_week + timedelta(days=6)
+
+            # Step 2: Create days list with name + date
+            days = []
+            for i in range(7):
+                current_date = start_of_week + timedelta(days=i)
+                day_name = current_date.strftime('%a')  # 'Mon', etc.
+                days.append({'name': day_name, 'date': current_date})
+
+            student_weekly_data = []
+
+            for student in students:
+                daily_status = {day['name']: '-' for day in days}
+                present = absent = late = total = 0
+
+                records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
+                for rec in records:
+                    if rec.date >= today:
+                        day = rec.date.strftime('%a')
+                        daily_status[day] = rec.status
+                        if rec.status == "Present":
+                            present += 1
+                        elif rec.status == "Absent":
+                            absent += 1
+                        elif rec.status == "Late":
+                            late += 1
+                        total += 1
+
+                student_weekly_data.append({
+                    'student': student,
+                    'daily': daily_status,
+                    'present': present,
+                    'absent': absent,
+                    'late': late,
+                    'total': total,
+                    'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+                })
+
+            context = {
+                'students': student_weekly_data,
+                'days': days,
+                'selected_range': date_range,
+                'mode': mode,
+                'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+                'section': Section.objects.get(id=section_id) if section_id else None,
+                'start_date': start_of_week,
+                'end_date': end_of_week,
+                'today': today,
+            }
+
+            html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+            return HttpResponse(html)
+
+        # ✅ CLASS YEARLY SUMMARY
+        if mode == 'class' and date_range == 'year':
+            month_keys = [str(i).zfill(2) for i in range(1, 13)]
+            months = [calendar.month_abbr[int(m)] for m in month_keys]
+            monthly_class_summary = {}
+
+            for student in students:
+                sid = student.id
+                data = {
+                    "months": defaultdict(int),
+                    "present": 0,
+                    "absent": 0,
+                    "late": 0,
+                    "total": 0
+                }
+                records = Attendance.objects.filter(student_id=sid, date__year=today.year)
+                for r in records:
+                    mkey = str(r.date.month).zfill(2)
+                    data["months"][mkey] += 1
+                    data[r.status.lower()] += 1
+                    data["total"] += 1
+
+                monthly_class_summary[sid] = data
+
+            context = {
+                'students': [{'student': s} for s in students],
+                'monthly_class_summary': monthly_class_summary,
+                'month_keys': month_keys,
+                'months': months,
+                'selected_range': date_range,
+                'mode': mode,
+                'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+                'section': Section.objects.get(id=section_id) if section_id else None,
+                'start_date': start,
+                'end_date': end,
+            }
+
+            html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+            return HttpResponse(html)
+
+        # ✅ DEFAULT SUMMARY TABLE
         student_data = []
         for student in students:
             records = Attendance.objects.filter(student=student, date__range=(start, end))
@@ -2521,6 +2804,8 @@ def generate_attendance_report(request):
         return HttpResponse(html)
 
     return HttpResponseBadRequest("Invalid request method")
+
+
 
 
 from calendar import monthrange
