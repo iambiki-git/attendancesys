@@ -132,35 +132,32 @@
       </thead>
       <tbody>
         {% for record in students %}
-        {% with data=monthly_class_summary|get_item:record.student.id %}
-        <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
-          <td class="border px-4 py-2 text-left font-medium">{{ record.student.name }}</td>
-          {% for key in month_keys %}
-            <td class="border px-4 py-2">
-              {% with data.months|get_item:key as month_total %}
-                {% if month_total %}
-                  {% with data.present|add:data.late as attended %}
-                    {{ attended }} / {{ month_total }}
-                  {% endwith %}
-                {% else %}
-                  -
-                {% endif %}
-              {% endwith %}
-            </td>
-          {% endfor %}
-          <td class="border px-4 py-2">{{ data.present }}</td>
-          <td class="border px-4 py-2">{{ data.absent }}</td>
-          <td class="border px-4 py-2">{{ data.late }}</td>
-          {% comment %} <td class="border px-4 py-2">
-            {% if data.total > 0 %}
-              {% with data.present|add:data.late as attended %}
-                {% widthratio attended data.total 100 %}%
-              {% endwith %}
-            {% else %}-{% endif %}
-          </td> {% endcomment %}
-        </tr>
-        {% endwith %}
-        {% endfor %}
+  {% with data=monthly_class_summary|get_item:record.student.id %}
+  <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
+    <td class="border px-4 py-2 text-left font-medium">{{ record.student.name }}</td>
+
+    {# ✅ Monthly columns #}
+    {% for key in month_keys %}
+      {% with month=data.months|get_item:key %}
+        <td class="border px-4 py-2">
+          {% if month.total > 0 %}
+            {{ month.present|add:month.late }} / {{ month.total }}
+            <div class="text-xs text-gray-500">{{ month.percentage }}%</div>
+          {% else %}
+            -
+          {% endif %}
+        </td>
+      {% endwith %}
+    {% endfor %}
+
+    {# ✅ Totals at the end #}
+    <td class="border px-4 py-2">{{ data.present }}</td>
+    <td class="border px-4 py-2">{{ data.absent }}</td>
+    <td class="border px-4 py-2">{{ data.late }}</td>
+  </tr>
+  {% endwith %}
+{% endfor %}
+
       </tbody>
     </table>
   </div>

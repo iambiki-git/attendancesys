@@ -2943,7 +2943,7 @@ def generate_attendance_report(request):
         daily_status = {d['name']: '-' for d in days}
         present = absent = late = total = 0
 
-        records = Attendance.objects.filter(student=student, date__range=(today, end_of_week))
+        records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
         for rec in records:
             day = rec.date.strftime('%a')
             daily_status[day] = rec.status
@@ -3005,16 +3005,16 @@ def generate_attendance_report(request):
 
             records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
             for rec in records:
-                if rec.date >= today:
-                    day = rec.date.strftime('%a')
-                    daily_status[day] = rec.status
-                    if rec.status == "Present":
-                        present += 1
-                    elif rec.status == "Absent":
-                        absent += 1
-                    elif rec.status == "Late":
-                        late += 1
-                    total += 1
+                # if rec.date >= today:
+                day = rec.date.strftime('%a')
+                daily_status[day] = rec.status
+                if rec.status == "Present":
+                    present += 1
+                elif rec.status == "Absent":
+                    absent += 1
+                elif rec.status == "Late":
+                    late += 1
+                total += 1
 
             student_weekly_data.append({
                 'student': student,
@@ -3048,20 +3048,49 @@ def generate_attendance_report(request):
 
         for student in students:
             sid = student.id
-            data = {
-                "months": defaultdict(int),
-                "present": 0,
-                "absent": 0,
-                "late": 0,
-                "total": 0
+            # Nested month-wise structure
+            month_data = {
+                m: {
+                    'present': 0,
+                    'absent': 0,
+                    'late': 0,
+                    'total': 0,
+                    'percentage': None,
+                } for m in month_keys
             }
+
+            # All attendance records this year
             records = Attendance.objects.filter(student_id=sid, date__year=today.year)
+
             for r in records:
                 mkey = str(r.date.month).zfill(2)
-                data["months"][mkey] += 1
-                data[r.status.lower()] += 1
-                data["total"] += 1
-            monthly_class_summary[sid] = data
+                if r.status == 'Present':
+                    month_data[mkey]['present'] += 1
+                elif r.status == 'Absent':
+                    month_data[mkey]['absent'] += 1
+                elif r.status == 'Late':
+                    month_data[mkey]['late'] += 1
+                month_data[mkey]['total'] += 1
+
+            # Monthly percentages
+            for m in month_keys:
+                total = month_data[m]['total']
+                if total > 0:
+                    p = month_data[m]['present']
+                    l = month_data[m]['late']
+                    month_data[m]['percentage'] = round(((p + l) / total) * 100, 1)
+
+            # ✅ Compute yearly totals
+            total_present = sum(month_data[m]['present'] for m in month_keys)
+            total_absent = sum(month_data[m]['absent'] for m in month_keys)
+            total_late = sum(month_data[m]['late'] for m in month_keys)
+
+            monthly_class_summary[sid] = {
+                'months': month_data,
+                'present': total_present,
+                'absent': total_absent,
+                'late': total_late,
+            }
 
         context = {
             'students': [{'student': s} for s in students],
@@ -3077,6 +3106,7 @@ def generate_attendance_report(request):
         }
         html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
         return HttpResponse(html)
+
 
     # ✅ DEFAULT SUMMARY TABLE
     student_data = []

@@ -271,6 +271,7 @@
         </div>
       </div> {% endcomment %}
       <!-- Assigned Class Attendance -->
+{% if request.user.teacherprofile.grade and request.user.teacherprofile.section %} 
 <div class="bg-white rounded-lg border border-gray-100 shadow-md overflow-hidden">
   <div class="p-5 border-b border-gray-100">
     <h2 class="text-lg font-medium text-gray-800">📊 Attendance Overview</h2>
@@ -287,6 +288,7 @@
     </a>
   </div>
 </div>
+{% endif %}
 
 
     </div>
