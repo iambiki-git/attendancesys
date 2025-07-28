@@ -1,5 +1,5 @@
 {% load custom_tags %}
-<nav class="bg-white shadow-sm">
+<nav class="no-print bg-white shadow-sm">
   <div class="max-w-8xl mx-auto px-10">
     <div class="flex justify-between h-16">
       <!-- Left side - Logo/School Name -->
@@ -79,6 +79,10 @@
         class="{% if request.resolver_match.url_name == 'routine_setup' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Routine Setup
       </a>
+      {% comment %} <a href="{% url 'reports' %}" 
+        class="{% if request.resolver_match.url_name == 'reports' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+        Reports
+      </a> {% endcomment %}
       {% comment %} <a href="" 
         class="{% if request.resolver_match.url_name == 'reports' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Reports

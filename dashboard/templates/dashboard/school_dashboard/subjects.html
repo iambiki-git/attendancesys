@@ -49,6 +49,12 @@
           class="w-full md:flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
           required
         >
+        <!-- ✅ Checkbox to import -->
+        <label class="flex items-center text-sm gap-1 text-gray-700">
+          <input type="checkbox" name="import_previous" id="importCheckbox" class="accent-blue-600">
+          Import from previous grade
+        </label>
+
         <button 
           type="submit"
           class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
@@ -159,6 +165,20 @@
       row.querySelector('.edit-btn').classList.remove('hidden');
     });
   });
+
+ // Import subjects from previous grade
+  const importCheckbox = document.getElementById('importCheckbox');    
+document.addEventListener("DOMContentLoaded", () => {
+  const checkbox = document.getElementById("importCheckbox");
+  const gradeId = "{{ selected_grade.id }}";
+
+  checkbox.addEventListener("change", () => {
+    if (checkbox.checked) {
+      // Redirect the browser to trigger Django import + message
+      window.location.href = `/import-subjects/?grade_id=${gradeId}`;
+    }
+  });
+});
 </script>
 
 {% endblock %}

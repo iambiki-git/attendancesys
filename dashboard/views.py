@@ -414,7 +414,6 @@ def update_student(request):
         parentsContact = request.POST.get('parents_contact', '').strip()
         address = request.POST.get('address', '').strip()
 
-        print(fatherName, motherName, parentsContact, address, dob)
         
         if not all([student_id, name, roll_no]):
             return JsonResponse({
@@ -503,27 +502,53 @@ def delete_student(request, pk):
 
 
 
+# def grades_view(request):
+#     if not request.user.is_staff and not request.user.is_school_admin:
+#         return HttpResponseForbidden("You are not authorized to access this page.")
+    
+#     school = request.user.school
+#     grades = Grade.objects.filter(school=school).order_by('grade_number')
+
+
+#     # Create Paginator: 6 items per page
+#     paginator = Paginator(grades, 6)
+
+#     # Get current page number from GET parameter ?page=
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+
+
+
+#     context = {
+#         'page_obj':page_obj,
+#     }
+#     return render(request, 'dashboard/school_dashboard/grades.html', context)
+
+from django.db.models import Count
 def grades_view(request):
     if not request.user.is_staff and not request.user.is_school_admin:
         return HttpResponseForbidden("You are not authorized to access this page.")
-    
+
     school = request.user.school
-    grades = Grade.objects.filter(school=school).order_by('grade_number')
 
-    # Create Paginator: 6 items per page
+    # Annotate each grade with total number of students
+    grades = Grade.objects.filter(school=school).annotate(student_count=Count('student')).order_by('grade_number')
+
     paginator = Paginator(grades, 6)
-
-    # Get current page number from GET parameter ?page=
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-
+    # Annotate sections with student counts
+    section_map = {}
+    all_sections = Section.objects.filter(grade__in=page_obj, school=school).annotate(student_count=Count('student'))
+    for section in all_sections:
+        section_map.setdefault(section.grade_id, []).append(section)
 
     context = {
-        'page_obj':page_obj,
+        'page_obj': page_obj,
+        'section_map': section_map,
     }
     return render(request, 'dashboard/school_dashboard/grades.html', context)
-
 
 
 from attendancesys.utils import get_valid_access_token
@@ -1174,6 +1199,9 @@ def add_subject(request):
     subject_name = request.POST.get('name')
     grade_id = request.POST.get('grade_id')  # 👈 get grade
     school = request.user.school
+    import_previous = request.POST.get("import_previous")
+
+
     if not subject_name:
         messages.error(request, 'Subject name cannot be empty.')
         return redirect('subjects')
@@ -1215,6 +1243,40 @@ def add_subject(request):
 
     return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
 
+
+def import_subjects_ajax(request):
+    grade_id = request.GET.get('grade_id')
+    school = request.user.school
+
+    try:
+        current_grade = Grade.objects.get(id=grade_id, school=school)
+        previous_grade = Grade.objects.filter(
+            grade_number=current_grade.grade_number - 1,
+            school=school
+        ).first()
+
+        if not previous_grade:
+            messages.warning(request, "⚠️ No previous grade found.")
+            return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
+
+        prev_subjects = Subjects.objects.filter(grade=previous_grade, school=school)
+        existing_subjects = Subjects.objects.filter(grade=current_grade, school=school).values_list('name', flat=True)
+
+        imported_count = 0
+        for subj in prev_subjects:
+            if subj.name not in existing_subjects:
+                Subjects.objects.create(name=subj.name, grade=current_grade, school=school)
+                imported_count += 1
+
+        if imported_count:
+            messages.success(request, f"✅ Imported {imported_count} subject(s) from Grade {previous_grade.grade_number}.")
+        else:
+            messages.info(request, f"ℹ️ All subjects from Grade {previous_grade.grade_number} already exist.")
+
+    except Grade.DoesNotExist:
+        messages.error(request, "❌ Invalid grade ID.")
+
+    return redirect(f"{reverse('subjects')}?grade_id={grade_id}")
 
 
 def delete_subject(request, pk):
@@ -1758,9 +1820,124 @@ def teacher_routine_view(request):
 #     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
+# import csv
+# from io import TextIOWrapper
+# from datetime import datetime
+# from django.views.decorators.csrf import csrf_exempt
+
+# def parse_flexible_date(dob_str):
+#     for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%m/%d/%y"):
+#         try:
+#             return datetime.strptime(dob_str.strip(), fmt).date()
+#         except (ValueError, AttributeError):
+#             continue
+#     return None
+
+# @csrf_exempt
+# def import_students_csv(request):
+#     school = request.user.school
+#     if request.method == 'POST' and request.FILES.get('csv_file'):
+#         try:
+#             grade_id = request.POST.get('grade_id')
+#             section_id = request.POST.get('section_id')
+
+#             grade = Grade.objects.get(id=grade_id)
+#             section = Section.objects.get(id=section_id)
+
+#             csv_file = TextIOWrapper(request.FILES['csv_file'].file, encoding='utf-8')
+#             reader = csv.DictReader(csv_file)
+
+#             skipped = []
+
+#             for row in reader:
+#                 name = row.get('name', '').strip()
+#                 roll_number = row.get('roll_number', '').strip()
+
+#                 if not name or not roll_number:
+#                     continue  # skip incomplete rows
+
+#                 # Check for duplicate roll number
+#                 if Student.objects.filter(grade=grade, section=section, roll_number=roll_number).exists():
+#                     skipped.append(f"{name} (Roll {roll_number})")
+#                     continue
+
+#                 dob = parse_flexible_date(row.get('dob', ''))
+
+#                 Student.objects.create(
+#                     school=school,
+#                     name=name,
+#                     grade=grade,
+#                     section=section,
+#                     roll_number=int(roll_number),
+#                     father_name=row.get('father_name', '').strip(),
+#                     mother_name=row.get('mother_name', '').strip(),
+#                     dob=dob,
+#                     address=row.get('address', '').strip(),
+#                     parents_contact=row.get('parents_contact', '').strip()
+#                 )
+
+#             message = "✅ Students imported successfully."
+#             if skipped:
+#                 message += f" ⚠️ Skipped {len(skipped)} duplicate(s): " + ", ".join(skipped[:5])
+#                 if len(skipped) > 5:
+#                     message += "..."
+
+#             return JsonResponse({'success': True, 'message': message})
+
+#         except Exception as e:
+#             return JsonResponse({'success': False, 'error': str(e)})
+
+#     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@csrf_exempt
+def preview_csv_columns(request):
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        try:
+            csv_file = TextIOWrapper(request.FILES['csv_file'].file, encoding='utf-8')
+            reader = csv.DictReader(csv_file)
+            headers = reader.fieldnames
+
+            # Define aliases
+            required_fields = {
+                'name': ['name', 'full_name', 'student name'],
+                'roll_number': ['roll', 'roll_number', 'roll no'],
+                'father_name': ['father', 'father_name', 'father name'],
+                'mother_name': ['mother', 'mother_name', 'mother name'],
+                'dob': ['dob', 'date of birth', 'birthdate'],
+                'address': ['address', 'residence'],
+                'parents_contact': ['contact', 'phone', 'parents contact'],
+            }
+
+            matched_fields = {}
+            unmatched_fields = []
+            lower_headers = {h.lower().strip(): h for h in headers}
+
+            for field, aliases in required_fields.items():
+                matched = False
+                for alias in aliases:
+                    if alias.lower() in lower_headers:
+                        matched_fields[field] = lower_headers[alias.lower()]
+                        matched = True
+                        break
+                if not matched:
+                    unmatched_fields.append(field)
+
+            return JsonResponse({
+                'success': True,
+                'headers': headers,
+                'unmatched_fields': unmatched_fields,
+                'matched_fields': matched_fields,
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
 import csv
 from io import TextIOWrapper
-from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 
 def parse_flexible_date(dob_str):
@@ -1771,35 +1948,50 @@ def parse_flexible_date(dob_str):
             continue
     return None
 
+
 @csrf_exempt
 def import_students_csv(request):
     school = request.user.school
+
     if request.method == 'POST' and request.FILES.get('csv_file'):
         try:
             grade_id = request.POST.get('grade_id')
             section_id = request.POST.get('section_id')
-
             grade = Grade.objects.get(id=grade_id)
             section = Section.objects.get(id=section_id)
 
             csv_file = TextIOWrapper(request.FILES['csv_file'].file, encoding='utf-8')
             reader = csv.DictReader(csv_file)
 
-            skipped = []
+            # Read mappings from form: map_name, map_roll_number, etc.
+            field_mapping = {}
+            for field in ['name', 'roll_number', 'father_name', 'mother_name', 'dob', 'address', 'parents_contact']:
+                key = request.POST.get(f'map_{field}')
+                if key:
+                    field_mapping[field] = key
+
+            # Ensure name and roll_number are provided
+            if 'name' not in field_mapping or 'roll_number' not in field_mapping:
+                return JsonResponse({
+                    'success': False,
+                    'error': "CSV must contain at least 'name' and 'roll_number' columns."
+                })
+
+            imported, skipped = 0, []
 
             for row in reader:
-                name = row.get('name', '').strip()
-                roll_number = row.get('roll_number', '').strip()
+                name = row.get(field_mapping['name'], '').strip()
+                roll_number = row.get(field_mapping['roll_number'], '').strip()
 
                 if not name or not roll_number:
-                    continue  # skip incomplete rows
+                    continue
 
-                # Check for duplicate roll number
+                # Skip duplicates
                 if Student.objects.filter(grade=grade, section=section, roll_number=roll_number).exists():
                     skipped.append(f"{name} (Roll {roll_number})")
                     continue
 
-                dob = parse_flexible_date(row.get('dob', ''))
+                dob = parse_flexible_date(row.get(field_mapping.get('dob', ''), ''))
 
                 Student.objects.create(
                     school=school,
@@ -1807,14 +1999,15 @@ def import_students_csv(request):
                     grade=grade,
                     section=section,
                     roll_number=int(roll_number),
-                    father_name=row.get('father_name', '').strip(),
-                    mother_name=row.get('mother_name', '').strip(),
+                    father_name=row.get(field_mapping.get('father_name', ''), '').strip(),
+                    mother_name=row.get(field_mapping.get('mother_name', ''), '').strip(),
                     dob=dob,
-                    address=row.get('address', '').strip(),
-                    parents_contact=row.get('parents_contact', '').strip()
+                    address=row.get(field_mapping.get('address', ''), '').strip(),
+                    parents_contact=row.get(field_mapping.get('parents_contact', ''), '').strip()
                 )
+                imported += 1
 
-            message = "✅ Students imported successfully."
+            message = f"✅ {imported} student(s) imported successfully."
             if skipped:
                 message += f" ⚠️ Skipped {len(skipped)} duplicate(s): " + ", ".join(skipped[:5])
                 if len(skipped) > 5:
@@ -1826,6 +2019,56 @@ def import_students_csv(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+import csv
+from django.http import HttpResponse
+
+def export_students_csv(request):
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+
+    if not grade_id or not section_id:
+        return HttpResponse("Grade and Section are required.", status=400)
+
+    students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="students_grade_{}_section_{}.csv"'.format(grade_id, section_id)
+
+    writer = csv.writer(response)
+    writer.writerow(['Name', 'Roll Number', 'Father Name', 'Mother Name', 'DOB', 'Address', 'Parents Contact'])
+
+    for student in students:
+        writer.writerow([
+            student.name,
+            student.roll_number,
+            student.father_name,
+            student.mother_name,
+            student.dob,
+            student.address,
+            student.parents_contact
+        ])
+
+    return response
+
+
+def print_students_view(request):
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+
+    if not grade_id or not section_id:
+        return HttpResponse("Grade and Section are required.", status=400)
+
+    students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+    grade = Grade.objects.filter(id=grade_id).first()
+    section = Section.objects.filter(id=section_id).first()
+
+    return render(request, 'dashboard/school_dashboard/print_students.html', {
+        'students': students,
+        'grade': grade,
+        'section': section,
+    })
 
 
 # def code(request):
@@ -1876,7 +2119,7 @@ def detailed_student_attendance(request):
     total_absent = attendance_records.filter(status='Absent').count()
     total_late = attendance_records.filter(status='Late').count()
 
-    print(total_present, total_absent, total_late)
+
 
     student_qs = Student.objects.filter(school=school).select_related('grade', 'section') \
         .order_by('grade__grade_number', 'section__name', 'roll_number')
@@ -2112,6 +2355,7 @@ def _redirect_user(user):
         return redirect('teacher_announcement')
     return redirect('/')
 
+
 def teacher_announcement(request):
     school = request.user.school
     announcements_list = Announcement.objects.filter(school=school).order_by('-created_at')
@@ -2124,3 +2368,819 @@ def teacher_announcement(request):
         'announcements': announcements,
     }
     return render(request, 'dashboard/teachers/teacher_announcement.html', context)
+
+
+# def reports_view(request):
+#     school = request.user.school
+#     # Filter only grades that have at least one student
+#     grades = Grade.objects.filter(school=school, student__isnull=False).distinct()
+#     return render(request, 'dashboard/school_dashboard/reports.html', {
+#         'grades': grades,
+#     })
+
+
+def reports_view(request):
+    school = request.user.school
+    user = request.user
+
+    # Distinguish user type
+    user_type = "school" if user.is_school_admin else "teacher" if user.is_teacher else "student"
+
+    context = {
+        'user_type': user_type,
+        'report_generated': False,  # 👈 This is the key line
+    }
+
+    if user_type == "school":
+        grades = Grade.objects.filter(school=school, student__isnull=False).distinct()
+        context['grades'] = grades
+
+    elif user_type == "teacher":
+        teacher_profile = user.teacherprofile
+        assigned_grade = teacher_profile.grade
+        assigned_section = teacher_profile.section
+        students = Student.objects.filter(grade=assigned_grade, section=assigned_section)
+
+        context.update({
+            'assigned_grade': assigned_grade,
+            'assigned_section': assigned_section,
+            'students': students,
+        })
+
+    return render(request, 'dashboard/school_dashboard/reports.html', context)
+
+
+
+# Unified view to get sections and students based on grade and optionally section
+def get_sections_and_students(request):
+    grade_id = request.GET.get('grade_id')
+    section_id = request.GET.get('section_id')
+
+    sections = Section.objects.filter(grade_id=grade_id).values('id', 'name')
+
+    students_qs = Student.objects.filter(grade_id=grade_id)
+    if section_id:
+        students_qs = students_qs.filter(section_id=section_id)
+
+    students = students_qs.values('id', 'name')
+
+    return JsonResponse({
+        'sections': list(sections),
+        'students': list(students),
+    })
+
+
+# from django.http import HttpResponse, HttpResponseBadRequest
+# from django.template.loader import render_to_string
+# from django.views.decorators.csrf import csrf_exempt
+# from calendar import monthrange
+# from datetime import date, timedelta
+# from django.utils import timezone
+
+# @csrf_exempt
+# def generate_attendance_report(request):
+#     if request.method == 'POST':
+#         mode = request.POST.get('reportMode')
+#         grade_id = request.POST.get('grade_id')
+#         section_id = request.POST.get('section_id')
+#         student_id = request.POST.get('student_id')
+#         date_range = request.POST.get('date_range')
+#         start_date = request.POST.get('start_date')
+#         end_date = request.POST.get('end_date')
+
+#         today = timezone.now().date()
+
+#         # ✅ Special case: Individual yearly summary (monthly breakdown)
+#         if mode == 'individual' and student_id and date_range == 'year':
+#             student = Student.objects.get(id=student_id)
+#             grades =  Grade.objects.get(id=grade_id) if grade_id else None
+#             sections = Section.objects.get(id=section_id) if section_id else None
+#             monthly_data = []
+
+#             for month in range(1, 13):
+#                 year = today.year
+#                 first_day = date(year, month, 1)
+#                 last_day = date(year, month, monthrange(year, month)[1])
+
+#                 records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
+#                 present = records.filter(status__in=['Present', 'Late']).count()
+#                 absent = records.filter(status='Absent').count()
+#                 late = records.filter(status='Late').count()
+#                 total = records.count()
+
+#                 # ✅ Add per-day status
+#                 details = [
+#                     {'date': r.date.strftime('%b %d, %Y'), 'status': r.status}
+#                     for r in records
+#                 ]
+
+#                 monthly_data.append({
+#                     'month': first_day.strftime("%B"),
+#                     'present': present,
+#                     'absent': absent,
+#                     'late': late,
+#                     'total': total,
+#                     'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+#                     'details': details,  # ✅ This is what makes the daily table possible
+#                 })
+
+
+#             context = {
+#                 'student': student,
+#                 'monthly_data': monthly_data,
+#                 'mode': 'individual_yearly_summary',
+#                 'grade': grades,
+#                 'section': sections,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+#         # ✅ General case: class-wise or individual daily/weekly/month/custom
+#         if mode == 'class':
+#             students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+#         elif mode == 'individual' and student_id:
+#             students = Student.objects.filter(id=student_id)
+#         else:
+#             students = Student.objects.none()
+
+#         # ✅ Date range logic (required for all non-monthly reports)
+#         if date_range == "today":
+#             start = end = today
+#         elif date_range == "week":
+#             start = today - timedelta(days=today.weekday())
+#             end = today
+#         elif date_range == "month":
+#             start = today.replace(day=1)
+#             end = today
+#         elif date_range == "year":
+#             start = today.replace(month=1, day=1)
+#             end = today
+#         elif date_range == "custom" and start_date and end_date:
+#             start = date.fromisoformat(start_date)
+#             end = date.fromisoformat(end_date)
+#         else:
+#             start = end = today  # fallback if something is missing
+
+#         # ✅ Per student attendance summary
+#         student_data = []
+#         for student in students:
+#             records = Attendance.objects.filter(student=student, date__range=(start, end))
+#             present = records.filter(status__in=['Present', 'Late']).count()
+#             absent = records.filter(status='Absent').count()
+#             late = records.filter(status='Late').count()
+#             total = records.count()
+
+#             student_data.append({
+#                 'student': student,
+#                 'present': present,
+#                 'absent': absent,
+#                 'late': late,
+#                 'total': total,
+#             })
+
+#         context = {
+#             'students': student_data,
+#             'start_date': start,
+#             'end_date': end,
+#             'selected_range': date_range,
+#             'mode': mode,
+#             'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#             'section': Section.objects.get(id=section_id) if section_id else None,
+#             'student': Student.objects.get(id=student_id) if student_id else None,
+#         }
+
+#         html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#         return HttpResponse(html)
+
+#     return HttpResponseBadRequest("Invalid request method")
+
+# from django.http import HttpResponse, HttpResponseBadRequest
+# from django.template.loader import render_to_string
+# from django.views.decorators.csrf import csrf_exempt
+# from calendar import monthrange
+# from datetime import date, timedelta
+# from django.utils import timezone
+# import calendar
+# from collections import defaultdict
+
+# @csrf_exempt
+# def generate_attendance_report(request):
+#     if request.method == 'POST':
+#         mode = request.POST.get('reportMode')
+#         grade_id = request.POST.get('grade_id')
+#         section_id = request.POST.get('section_id')
+#         student_id = request.POST.get('student_id')
+#         date_range = request.POST.get('date_range')
+#         start_date = request.POST.get('start_date')
+#         end_date = request.POST.get('end_date')
+
+#         today = timezone.now().date()
+
+#         # ✅ Date range logic FIRST (to avoid UnboundLocalError)
+#         if date_range == "today":
+#             start = end = today
+#         elif date_range == "week":
+#             start = today - timedelta(days=today.weekday())
+#             end = today
+#         elif date_range == "month":
+#             start = today.replace(day=1)
+#             end = today
+#         elif date_range == "year":
+#             start = today.replace(month=1, day=1)
+#             end = today
+#         elif date_range == "custom" and start_date and end_date:
+#             start = date.fromisoformat(start_date)
+#             end = date.fromisoformat(end_date)
+#         else:
+#             start = end = today
+
+#         # ✅ INDIVIDUAL YEARLY SUMMARY
+#         if mode == 'individual' and student_id and date_range == 'year':
+#             student = Student.objects.get(id=student_id)
+#             grades = Grade.objects.get(id=grade_id) if grade_id else None
+#             sections = Section.objects.get(id=section_id) if section_id else None
+#             monthly_data = []
+
+#             for month in range(1, 13):
+#                 year = today.year
+#                 first_day = date(year, month, 1)
+#                 last_day = date(year, month, monthrange(year, month)[1])
+
+#                 records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
+#                 present = records.filter(status__in=['Present', 'Late']).count()
+#                 absent = records.filter(status='Absent').count()
+#                 late = records.filter(status='Late').count()
+#                 total = records.count()
+
+#                 monthly_data.append({
+#                     'month': first_day.strftime("%B"),
+#                     'present': present,
+#                     'absent': absent,
+#                     'late': late,
+#                     'total': total,
+#                     'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+#                 })
+
+#             context = {
+#                 'student': student,
+#                 'monthly_data': monthly_data,
+#                 'mode': 'individual_yearly_summary',
+#                 'grade': grades,
+#                 'section': sections,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+#         # ✅ INDIVIDUAL WEEKLY SUMMARY
+#         if mode == 'individual' and student_id and date_range == 'week':
+#             student = Student.objects.get(id=student_id)
+#             today = date.today()
+#             weekday = today.weekday()  # Monday = 0, Sunday = 6
+
+#             # Calculate start of the week (Sunday)
+#             sunday_index = (weekday + 1) % 7
+#             start_of_week = today - timedelta(days=sunday_index)
+#             end_of_week = start_of_week + timedelta(days=6)
+
+#             # Generate all 7 days from Sunday to Saturday
+#             days = []
+#             current_date = start_of_week
+#             while current_date <= end_of_week:
+#                 day_name = current_date.strftime('%a')
+#                 day_date = current_date.strftime('%Y-%m-%d')
+#                 days.append({'name': day_name, 'date': day_date})
+#                 current_date += timedelta(days=1)
+
+#             # Prepare daily status dict (only show attendance from today onward)
+#             daily_status = {day['name']: '-' for day in days}
+#             present = absent = late = total = 0
+
+#             records = Attendance.objects.filter(student=student, date__range=(today, end_of_week))
+#             for rec in records:
+#                 day = rec.date.strftime('%a')
+#                 daily_status[day] = rec.status
+#                 if rec.status == "Present":
+#                     present += 1
+#                 elif rec.status == "Absent":
+#                     absent += 1
+#                 elif rec.status == "Late":
+#                     late += 1
+#                 total += 1
+
+#             student_weekly = {
+#                 'student': student,
+#                 'daily': daily_status,
+#                 'present': present,
+#                 'absent': absent,
+#                 'late': late,
+#                 'total': total,
+#                 'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+#             }
+
+#             context = {
+#                 'student': student,
+#                 'rec': student_weekly,
+#                 'days': days,
+#                 'selected_range': date_range,
+#                 'mode': mode,
+#                 'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#                 'section': Section.objects.get(id=section_id) if section_id else None,
+#                 'start_date': start_of_week,
+#                 'end_date': end_of_week,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+        
+        
+#         # ✅ CLASS OR GENERAL INDIVIDUAL (load students)
+#         if mode == 'class':
+#             students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+#         elif mode == 'individual' and student_id:
+#             students = Student.objects.filter(id=student_id)
+#         else:
+#             students = Student.objects.none()
+
+#         # ✅ CLASS WEEKLY SUMMARY
+#         if mode == 'class' and date_range == 'week':
+#             today = date.today()
+
+#             # Step 1: Calculate start of the week (Sunday)
+#             weekday = today.weekday()  # Monday = 0, Sunday = 6
+#             sunday_index = (weekday + 1) % 7
+#             start_of_week = today - timedelta(days=sunday_index)
+#             end_of_week = start_of_week + timedelta(days=6)
+
+#             # Step 2: Create days list with name + date
+#             days = []
+#             for i in range(7):
+#                 current_date = start_of_week + timedelta(days=i)
+#                 day_name = current_date.strftime('%a')  # 'Mon', etc.
+#                 days.append({'name': day_name, 'date': current_date})
+
+#             student_weekly_data = []
+
+#             for student in students:
+#                 daily_status = {day['name']: '-' for day in days}
+#                 present = absent = late = total = 0
+
+#                 records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
+#                 for rec in records:
+#                     if rec.date >= today:
+#                         day = rec.date.strftime('%a')
+#                         daily_status[day] = rec.status
+#                         if rec.status == "Present":
+#                             present += 1
+#                         elif rec.status == "Absent":
+#                             absent += 1
+#                         elif rec.status == "Late":
+#                             late += 1
+#                         total += 1
+
+#                 student_weekly_data.append({
+#                     'student': student,
+#                     'daily': daily_status,
+#                     'present': present,
+#                     'absent': absent,
+#                     'late': late,
+#                     'total': total,
+#                     'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+#                 })
+
+#             context = {
+#                 'students': student_weekly_data,
+#                 'days': days,
+#                 'selected_range': date_range,
+#                 'mode': mode,
+#                 'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#                 'section': Section.objects.get(id=section_id) if section_id else None,
+#                 'start_date': start_of_week,
+#                 'end_date': end_of_week,
+#                 'today': today,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+#         # ✅ CLASS YEARLY SUMMARY
+#         if mode == 'class' and date_range == 'year':
+#             month_keys = [str(i).zfill(2) for i in range(1, 13)]
+#             months = [calendar.month_abbr[int(m)] for m in month_keys]
+#             monthly_class_summary = {}
+
+#             for student in students:
+#                 sid = student.id
+#                 data = {
+#                     "months": defaultdict(int),
+#                     "present": 0,
+#                     "absent": 0,
+#                     "late": 0,
+#                     "total": 0
+#                 }
+#                 records = Attendance.objects.filter(student_id=sid, date__year=today.year)
+#                 for r in records:
+#                     mkey = str(r.date.month).zfill(2)
+#                     data["months"][mkey] += 1
+#                     data[r.status.lower()] += 1
+#                     data["total"] += 1
+
+#                 monthly_class_summary[sid] = data
+
+#             context = {
+#                 'students': [{'student': s} for s in students],
+#                 'monthly_class_summary': monthly_class_summary,
+#                 'month_keys': month_keys,
+#                 'months': months,
+#                 'selected_range': date_range,
+#                 'mode': mode,
+#                 'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#                 'section': Section.objects.get(id=section_id) if section_id else None,
+#                 'start_date': start,
+#                 'end_date': end,
+#             }
+
+#             html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#             return HttpResponse(html)
+
+#         # ✅ DEFAULT SUMMARY TABLE
+#         student_data = []
+#         for student in students:
+#             records = Attendance.objects.filter(student=student, date__range=(start, end))
+#             present = records.filter(status__in=['Present', 'Late']).count()
+#             absent = records.filter(status='Absent').count()
+#             late = records.filter(status='Late').count()
+#             total = records.count()
+
+#             student_data.append({
+#                 'student': student,
+#                 'present': present,
+#                 'absent': absent,
+#                 'late': late,
+#                 'total': total,
+#             })
+
+#         context = {
+#             'students': student_data,
+#             'start_date': start,
+#             'end_date': end,
+#             'selected_range': date_range,
+#             'mode': mode,
+#             'grade': Grade.objects.get(id=grade_id) if grade_id else None,
+#             'section': Section.objects.get(id=section_id) if section_id else None,
+#             'student': Student.objects.get(id=student_id) if student_id else None,
+#         }
+
+#         html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+#         return HttpResponse(html)
+
+#     return HttpResponseBadRequest("Invalid request method")
+
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import date, timedelta
+from calendar import monthrange
+import calendar
+from collections import defaultdict
+
+@csrf_exempt
+def generate_attendance_report(request):
+    if request.method != 'POST':
+        return HttpResponseBadRequest("Invalid request method")
+
+    user = request.user
+    is_teacher = hasattr(user, 'teacherprofile')
+
+    mode = request.POST.get('reportMode')
+    student_id = request.POST.get('student_id')
+    date_range = request.POST.get('date_range')
+    start_date = request.POST.get('start_date')
+    end_date = request.POST.get('end_date')
+
+    today = timezone.now().date()
+
+    # ✅ Assign grade & section based on role
+    if is_teacher:
+        teacher_profile = user.teacherprofile
+        grade_id = str(teacher_profile.grade.id)
+        section_id = str(teacher_profile.section.id)
+    else:
+        grade_id = request.POST.get('grade_id')
+        section_id = request.POST.get('section_id')
+
+    # ✅ Date range logic
+    if date_range == "today":
+        start = end = today
+    elif date_range == "week":
+        start = today - timedelta(days=today.weekday())
+        end = today
+    elif date_range == "month":
+        start = today.replace(day=1)
+        end = today
+    elif date_range == "year":
+        start = today.replace(month=1, day=1)
+        end = today
+    elif date_range == "custom" and start_date and end_date:
+        start = date.fromisoformat(start_date)
+        end = date.fromisoformat(end_date)
+    else:
+        start = end = today
+
+    # ✅ INDIVIDUAL YEARLY SUMMARY
+    if mode == 'individual' and student_id and date_range == 'year':
+        student = Student.objects.get(id=student_id)
+        if is_teacher and (student.grade.id != teacher_profile.grade.id or student.section.id != teacher_profile.section.id):
+            return HttpResponseBadRequest("Unauthorized access to student data.")
+
+        monthly_data = []
+        for month in range(1, 13):
+            first_day = date(today.year, month, 1)
+            last_day = date(today.year, month, monthrange(today.year, month)[1])
+
+            records = Attendance.objects.filter(student=student, date__range=(first_day, last_day))
+            present = records.filter(status__in=['Present', 'Late']).count()
+            absent = records.filter(status='Absent').count()
+            late = records.filter(status='Late').count()
+            total = records.count()
+
+            monthly_data.append({
+                'month': first_day.strftime("%B"),
+                'present': present,
+                'absent': absent,
+                'late': late,
+                'total': total,
+                'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+            })
+
+        context = {
+            'student': student,
+            'monthly_data': monthly_data,
+            'mode': 'individual_yearly_summary',
+            'grade': student.grade,
+            'section': student.section,
+        }
+        html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+        return HttpResponse(html)
+
+    # ✅ INDIVIDUAL WEEKLY SUMMARY
+    if mode == 'individual' and student_id and date_range == 'week':
+        student = Student.objects.get(id=student_id)
+        if is_teacher and (student.grade.id != teacher_profile.grade.id or student.section.id != teacher_profile.section.id):
+            return HttpResponseBadRequest("Unauthorized access to student data.")
+
+        weekday = today.weekday()
+        start_of_week = today - timedelta(days=(weekday + 1) % 7)
+        end_of_week = start_of_week + timedelta(days=6)
+
+        days = [{'name': (start_of_week + timedelta(days=i)).strftime('%a'),
+                 'date': (start_of_week + timedelta(days=i)).strftime('%Y-%m-%d')}
+                for i in range(7)]
+
+        daily_status = {d['name']: '-' for d in days}
+        present = absent = late = total = 0
+
+        records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
+        for rec in records:
+            day = rec.date.strftime('%a')
+            daily_status[day] = rec.status
+            if rec.status == "Present":
+                present += 1
+            elif rec.status == "Absent":
+                absent += 1
+            elif rec.status == "Late":
+                late += 1
+            total += 1
+
+        context = {
+            'student': student,
+            'rec': {
+                'student': student,
+                'daily': daily_status,
+                'present': present,
+                'absent': absent,
+                'late': late,
+                'total': total,
+                'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+            },
+            'days': days,
+            'selected_range': date_range,
+            'mode': mode,
+            'grade': student.grade,
+            'section': student.section,
+            'start_date': start_of_week,
+            'end_date': end_of_week,
+        }
+        html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+        return HttpResponse(html)
+
+    # ✅ Load student list
+    if mode == 'class':
+        students = Student.objects.filter(grade_id=grade_id, section_id=section_id)
+    elif mode == 'individual' and student_id:
+        student_qs = Student.objects.filter(id=student_id)
+        if is_teacher:
+            student_qs = student_qs.filter(grade=teacher_profile.grade, section=teacher_profile.section)
+        students = student_qs
+    else:
+        students = Student.objects.none()
+
+    # ✅ CLASS WEEKLY SUMMARY
+    if mode == 'class' and date_range == 'week':
+        weekday = today.weekday()
+        start_of_week = today - timedelta(days=(weekday + 1) % 7)
+        end_of_week = start_of_week + timedelta(days=6)
+
+        days = [{'name': (start_of_week + timedelta(days=i)).strftime('%a'),
+                 'date': (start_of_week + timedelta(days=i))}
+                for i in range(7)]
+
+        student_weekly_data = []
+        for student in students:
+            daily_status = {day['name']: '-' for day in days}
+            present = absent = late = total = 0
+
+            records = Attendance.objects.filter(student=student, date__range=(start_of_week, end_of_week))
+            for rec in records:
+                # if rec.date >= today:
+                day = rec.date.strftime('%a')
+                daily_status[day] = rec.status
+                if rec.status == "Present":
+                    present += 1
+                elif rec.status == "Absent":
+                    absent += 1
+                elif rec.status == "Late":
+                    late += 1
+                total += 1
+
+            student_weekly_data.append({
+                'student': student,
+                'daily': daily_status,
+                'present': present,
+                'absent': absent,
+                'late': late,
+                'total': total,
+                'percentage': round(((present + late) / total * 100), 1) if total > 0 else None,
+            })
+
+        context = {
+            'students': student_weekly_data,
+            'days': days,
+            'selected_range': date_range,
+            'mode': mode,
+            'grade': Grade.objects.get(id=grade_id),
+            'section': Section.objects.get(id=section_id),
+            'start_date': start_of_week,
+            'end_date': end_of_week,
+            'today': today,
+        }
+        html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+        return HttpResponse(html)
+
+    # ✅ CLASS YEARLY SUMMARY
+    if mode == 'class' and date_range == 'year':
+        month_keys = [str(i).zfill(2) for i in range(1, 13)]
+        months = [calendar.month_abbr[int(m)] for m in month_keys]
+        monthly_class_summary = {}
+
+        for student in students:
+            sid = student.id
+            # Nested month-wise structure
+            month_data = {
+                m: {
+                    'present': 0,
+                    'absent': 0,
+                    'late': 0,
+                    'total': 0,
+                    'percentage': None,
+                } for m in month_keys
+            }
+
+            # All attendance records this year
+            records = Attendance.objects.filter(student_id=sid, date__year=today.year)
+
+            for r in records:
+                mkey = str(r.date.month).zfill(2)
+                if r.status == 'Present':
+                    month_data[mkey]['present'] += 1
+                elif r.status == 'Absent':
+                    month_data[mkey]['absent'] += 1
+                elif r.status == 'Late':
+                    month_data[mkey]['late'] += 1
+                month_data[mkey]['total'] += 1
+
+            # Monthly percentages
+            for m in month_keys:
+                total = month_data[m]['total']
+                if total > 0:
+                    p = month_data[m]['present']
+                    l = month_data[m]['late']
+                    month_data[m]['percentage'] = round(((p + l) / total) * 100, 1)
+
+            # ✅ Compute yearly totals
+            total_present = sum(month_data[m]['present'] for m in month_keys)
+            total_absent = sum(month_data[m]['absent'] for m in month_keys)
+            total_late = sum(month_data[m]['late'] for m in month_keys)
+
+            monthly_class_summary[sid] = {
+                'months': month_data,
+                'present': total_present,
+                'absent': total_absent,
+                'late': total_late,
+            }
+
+        context = {
+            'students': [{'student': s} for s in students],
+            'monthly_class_summary': monthly_class_summary,
+            'month_keys': month_keys,
+            'months': months,
+            'selected_range': date_range,
+            'mode': mode,
+            'grade': Grade.objects.get(id=grade_id),
+            'section': Section.objects.get(id=section_id),
+            'start_date': start,
+            'end_date': end,
+        }
+        html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+        return HttpResponse(html)
+
+
+    # ✅ DEFAULT SUMMARY TABLE
+    student_data = []
+    for student in students:
+        records = Attendance.objects.filter(student=student, date__range=(start, end))
+        present = records.filter(status__in=['Present', 'Late']).count()
+        absent = records.filter(status='Absent').count()
+        late = records.filter(status='Late').count()
+        total = records.count()
+
+        student_data.append({
+            'student': student,
+            'present': present,
+            'absent': absent,
+            'late': late,
+            'total': total,
+        })
+
+    context = {
+        'students': student_data,
+        'start_date': start,
+        'end_date': end,
+        'selected_range': date_range,
+        'mode': mode,
+        'grade': Grade.objects.get(id=grade_id),
+        'section': Section.objects.get(id=section_id),
+        'student': Student.objects.get(id=student_id) if student_id else None,
+    }
+    html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
+    return HttpResponse(html)
+
+
+
+from calendar import monthrange
+def attendance_month_detail(request, student_id, month_name):
+    student = get_object_or_404(Student, id=student_id)
+    today = timezone.now().date()
+    year = today.year  # or make dynamic with a query param
+
+    # Convert month name to number
+    try:
+        month_number = datetime.strptime(month_name, '%B').month
+    except ValueError:
+        return HttpResponseBadRequest("Invalid month")
+
+    first_day = date(year, month_number, 1)
+    last_day = date(year, month_number, monthrange(year, month_number)[1])
+
+    records = Attendance.objects.filter(student=student, date__range=(first_day, last_day)).order_by("date")
+
+    # daily = [{'date': r.date.strftime('%b %d, %Y'), 'status': r.status} for r in records]
+    daily = [
+        {
+            'date': r.date.strftime('%b %d, %Y'),
+            'day': r.date.strftime('%A'),  # <-- Add this line
+            'status': r.status
+        }
+        for r in records
+    ]
+
+    present = sum(1 for r in records if r.status == "Present")
+    absent = sum(1 for r in records if r.status == "Absent")
+    late = sum(1 for r in records if r.status == "Late")
+    total = records.count()
+
+    context = {
+        'student': student,
+        'month': month_name,
+        'year': year,
+        'daily_records': daily,
+        'present': present,
+        'absent': absent,
+        'late': late,
+        'total': total,
+    }
+    return render(request, 'dashboard/school_dashboard/attendance_month_detail.html', context)
+

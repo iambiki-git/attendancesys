@@ -1,6 +1,6 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
-<div class="bg-white rounded-xl shadow-md p-6 max-w-4xl mx-auto">
+<div class="bg-white rounded-xl shadow-md p-6 max-w-5xl mx-auto">
     {% if messages %}
     {% for message in messages %}
         <div class="mb-4 p-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
