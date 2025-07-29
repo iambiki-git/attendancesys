@@ -3014,6 +3014,7 @@ def generate_attendance_report(request):
                     absent += 1
                 elif rec.status == "Late":
                     late += 1
+                    present += 1
                 total += 1
 
             student_weekly_data.append({
@@ -3070,6 +3071,7 @@ def generate_attendance_report(request):
                     month_data[mkey]['absent'] += 1
                 elif r.status == 'Late':
                     month_data[mkey]['late'] += 1
+                    month_data[mkey]['present'] += 1
                 month_data[mkey]['total'] += 1
 
             # Monthly percentages
@@ -3084,6 +3086,8 @@ def generate_attendance_report(request):
             total_present = sum(month_data[m]['present'] for m in month_keys)
             total_absent = sum(month_data[m]['absent'] for m in month_keys)
             total_late = sum(month_data[m]['late'] for m in month_keys)
+            total_days = sum(month_data[m]['total'] for m in month_keys)       # ✅ total attendance records
+
 
             monthly_class_summary[sid] = {
                 'months': month_data,
@@ -3103,6 +3107,8 @@ def generate_attendance_report(request):
             'section': Section.objects.get(id=section_id),
             'start_date': start,
             'end_date': end,
+            'total_days': total_days,  # ✅ include this
+
         }
         html = render_to_string("dashboard/partials/attendance_report_table.html", context, request=request)
         return HttpResponse(html)

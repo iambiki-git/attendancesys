@@ -49,6 +49,10 @@
 {% elif mode == "individual" and selected_range == "week" %}
 <div class="overflow-x-auto mt-6">
   <h2 class="text-xl font-semibold text-gray-800 mb-4">🗓️ Weekly Attendance – {{ rec.student.name }}</h2>
+  <p class="text-sm text-gray-600 mb-4">
+    <strong>Grade:</strong> {{ grade.grade_number }} |
+    <strong>Section:</strong> {{ section.name }}
+  </p>
   <table class="w-full table-auto border text-sm text-center">
     <thead class="bg-gray-100">
       <tr>
@@ -70,11 +74,11 @@
         <td class="border px-4 py-2">
             {% with rec.daily|get_item:day.name as status %}
             {% if status == "Present" %}
-              ✅
+              ✅Present
             {% elif status == "Absent" %}
-              ❌
+              ❌Absent
             {% elif status == "Late" %}
-              ⏰
+              ⏰Late
             {% else %}
               -
             {% endif %}
@@ -116,51 +120,52 @@
 
   {% if mode == "class" and selected_range == "year" %}
   <!-- ✅ Class-wise Monthly Table for This Year -->
-  <div class="overflow-x-auto mt-6">
-    <table class="w-full table-auto border text-sm text-center">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="border px-4 py-2 text-left">Student</th>
-          {% for month in months %}
-            <th class="border px-4 py-2">{{ month }}</th>
-          {% endfor %}
-          <th class="border px-4 py-2">Present</th>
-          <th class="border px-4 py-2">Absent</th>
-          <th class="border px-4 py-2">Late</th>
-          {% comment %} <th class="border px-4 py-2">%</th> {% endcomment %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for record in students %}
-  {% with data=monthly_class_summary|get_item:record.student.id %}
-  <tr class="{% cycle 'bg-white' 'bg-gray-50' %}">
-    <td class="border px-4 py-2 text-left font-medium">{{ record.student.name }}</td>
+  <div class="overflow-x-auto print:overflow-visible mt-6">
+  <table class="min-w-full table-auto border-collapse text-sm text-center border border-gray-300 rounded-xl shadow">
+    <thead class="bg-gray-100 text-gray-800 font-semibold">
+      <tr>
+        <th class="border border-gray-300 px-4 py-2 text-left">Student</th>
+        {% for month in months %}
+          <th class="border border-gray-300 px-4 py-2">{{ month }}</th>
+        {% endfor %}
+        <th class="border border-gray-300 px-4 py-2">Present</th>
+        <th class="border border-gray-300 px-4 py-2">Absent</th>
+        <th class="border border-gray-300 px-4 py-2">Late</th>
+        <th class="border border-gray-300 px-4 py-2">Total Days</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in students %}
+      {% with data=monthly_class_summary|get_item:record.student.id %}
+      <tr class="{% cycle 'bg-white' 'bg-gray-50' %} hover:bg-indigo-50 transition-colors">
+        <td class="border border-gray-300 px-4 py-2 text-left font-medium text-gray-900 whitespace-nowrap">
+          {{ record.student.name }}
+        </td>
 
-    {# ✅ Monthly columns #}
-    {% for key in month_keys %}
-      {% with month=data.months|get_item:key %}
-        <td class="border px-4 py-2">
+        {% for key in month_keys %}
+        {% with month=data.months|get_item:key %}
+        <td class="border border-gray-300 px-2 py-2 text-gray-800">
           {% if month.total > 0 %}
-            {{ month.present|add:month.late }} / {{ month.total }}
-            <div class="text-xs text-gray-500">{{ month.percentage }}%</div>
+            <div class="font-medium">{{ month.present }} / {{ month.total }}</div>
+            <div class="text-xs text-yellow-600">Late: {{ month.late }}</div>
+            <div class="text-xs text-red-600">Absent: {{ month.absent }}</div>
           {% else %}
-            -
+            <span class="text-gray-400">-</span>
           {% endif %}
         </td>
+        {% endwith %}
+        {% endfor %}
+
+        <td class="border border-gray-300 px-4 py-2 font-semibold text-gray-900">{{ data.present }}</td>
+        <td class="border border-gray-300 px-4 py-2 font-semibold text-gray-900">{{ data.absent }}</td>
+        <td class="border border-gray-300 px-4 py-2 font-semibold text-gray-900">{{ data.late }}</td>
+        <td class="border border-gray-300 px-4 py-2 font-semibold text-gray-900">{{ total_days }}</td>
+      </tr>
       {% endwith %}
-    {% endfor %}
-
-    {# ✅ Totals at the end #}
-    <td class="border px-4 py-2">{{ data.present }}</td>
-    <td class="border px-4 py-2">{{ data.absent }}</td>
-    <td class="border px-4 py-2">{{ data.late }}</td>
-  </tr>
-  {% endwith %}
-{% endfor %}
-
-      </tbody>
-    </table>
-  </div>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
   {% elif mode == "class" and selected_range == "week" %}
   <!-- ✅ Weekly Table for Class -->
@@ -186,11 +191,11 @@
           <td class="border px-4 py-2">
               {% with status=rec.daily|get_item:day.name %}
               {% if status == "Present" %}
-                ✅
+                <span class="text-[12px]"> ✅Present</span>
               {% elif status == "Absent" %}
-                ❌
+                <span class="text-[12px]"> ❌Absent</span>
               {% elif status == "Late" %}
-                ⏰
+                <span class="text-[12px]"> ⏰Late</span>
               {% else %}
                 -
               {% endif %}
