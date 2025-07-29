@@ -13,29 +13,34 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <style>
-  @media print {
-    body {
-      background: white !important;
+    @media print {
+      body {
+        background: white !important;
+        zoom: 90%; /* Try 90%, 85%, 80%, tweak as needed */
+      }
+
+      .no-print, nav, header, footer {
+        display: none !important;
+      }
+
+      .max-w-3xl {
+        max-width: 100% !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+      }
+
+      table, th, td {
+        border: 1px solid #000 !important;
+        width: 100% !important;
+        font-size: 10px; /* Optional: reduce font size slightly */
+      }
+
+      a[href]:after {
+        content: "" !important;
+      }
     }
 
-    .no-print, nav, header, footer {
-      display: none !important;
-    }
-
-    .max-w-3xl {
-      max-width: 100% !important;
-      padding: 0 !important;
-      box-shadow: none !important;
-    }
-
-    table, th, td {
-      border: 1px solid #000 !important;
-    }
-
-    a[href]:after {
-      content: "" !important;
-    }
-  }
+   
 </style>
 
 </head>
