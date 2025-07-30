@@ -58,4 +58,4 @@ class AnnouncementAdmin(admin.ModelAdmin):
 from school.models import Assignment
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'subject', 'description', 'due_date', 'assignment_file', 'created_by', 'grade', 'section', 'school', 'created_at')
+    list_display = ('id', 'title', 'subject', 'description', 'due_date', 'assignment_file', 'created_by', 'grade', 'section', 'school', 'created_at', 'remark')

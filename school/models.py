@@ -162,6 +162,8 @@ class Assignment(models.Model):
     section = models.ForeignKey(Section, null=True, blank=True, on_delete=models.SET_NULL)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    remark = models.TextField(blank=True, null=True)
+
 
     def __str__(self):
         return self.title

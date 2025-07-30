@@ -3194,7 +3194,6 @@ from school.models import Assignment
 def assignment_view(request):
     school = request.user.school
     assignments = Assignment.objects.filter(school=school)
-    print('school', assignments)
 
 
     context = {
@@ -3249,3 +3248,63 @@ def create_assignment(request):
         return redirect('assignment')
 
     return redirect('assignment')
+
+
+@login_required
+def edit_assignment(request, pk):
+    assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user)
+
+    if request.method == "POST":
+        assignment.title = request.POST.get('title')
+        assignment.subject = request.POST.get('subject')
+        assignment.due_date = request.POST.get('due_date')
+        assignment.description = request.POST.get('description')
+        if 'assignment_file' in request.FILES:
+            assignment.assignment_file = request.FILES['assignment_file']
+        assignment.save()
+        messages.success(request, "✅ Assignment updated.")
+        return redirect('assignment')
+
+    return render(request, 'dashboard/teachers/assignment_edit.html', {'assignment': assignment})
+
+
+@login_required
+def add_remark(request, pk):
+    assignment = get_object_or_404(Assignment, pk=pk, created_by=request.user)
+
+    if request.method == "POST":
+        assignment.remark = request.POST.get('remark')
+        assignment.save()
+        messages.success(request, "💬 Remark added.")
+        return redirect('assignment')
+
+    return render(request, 'dashboard/teachers/assignment_remark.html', {'assignment': assignment})
+
+
+@login_required
+def delete_assignment(request, pk):
+    assignment = get_object_or_404(Assignment, pk=pk)
+
+    if assignment.created_by != request.user:
+        messages.error(request, "❌ You are not authorized to delete this assignment.")
+        return redirect('assignment')
+
+    # ⚠️ Allow delete on both GET and POST
+    assignment.delete()
+    messages.success(request, "🗑️ Assignment deleted successfully.")
+    return redirect('assignment')
+
+from django.http import FileResponse, Http404
+import os
+@login_required
+def download_assignment_file(request, pk):
+    assignment = get_object_or_404(Assignment, pk=pk)
+
+    if not assignment.assignment_file:
+        raise Http404("No file attached to this assignment.")
+
+    return FileResponse(
+        assignment.assignment_file.open('rb'),
+        as_attachment=True,
+        filename=os.path.basename(assignment.assignment_file.name)
+    )
