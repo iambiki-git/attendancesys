@@ -67,6 +67,9 @@ urlpatterns = [
     path('teacher/profile/', profile, name='profile'),
 
     
+
+    path('assignment/', assignment_view, name='assignment'),
+    path('create/assignment/', create_assignment, name='create_assignment'),
     
 
     # path('core',code)

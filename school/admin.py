@@ -54,3 +54,8 @@ class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ('title', 'type', 'school', 'created_at')
     search_fields = ('title', 'description')
     list_filter = ('type', 'school')
+
+from school.models import Assignment
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'subject', 'description', 'due_date', 'assignment_file', 'created_by', 'grade', 'section', 'school', 'created_at')

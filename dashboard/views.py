@@ -3190,3 +3190,62 @@ def attendance_month_detail(request, student_id, month_name):
     }
     return render(request, 'dashboard/school_dashboard/attendance_month_detail.html', context)
 
+from school.models import Assignment
+def assignment_view(request):
+    school = request.user.school
+    assignments = Assignment.objects.filter(school=school)
+    print('school', assignments)
+
+
+    context = {
+        'assignments': assignments,
+    }
+    return render(request, 'dashboard/teachers/assignment.html', context)
+
+
+@login_required
+def create_assignment(request):
+    if request.method == "POST":
+        title = request.POST.get('title', '').strip()
+        due_date = request.POST.get('due_date')
+        description = request.POST.get('description', '').strip()
+        file = request.FILES.get('assignment_file')
+
+        # Extract grade/section from form (hidden fields)
+        subject = request.POST.get('subject')
+        grade_id = request.POST.get('grade')
+        section_id = request.POST.get('section')
+
+        # Try to get Grade and Section from form; fall back to teacher profile if not provided
+        teacher_profile = getattr(request.user, 'teacherprofile', None)
+
+        if grade_id and section_id:
+            grade = get_object_or_404(Grade, id=grade_id)
+            section = get_object_or_404(Section, id=section_id)
+        elif teacher_profile:
+            grade = getattr(teacher_profile, 'grade', None)
+            section = getattr(teacher_profile, 'section', None)
+        else:
+            grade = None
+            section = None
+
+        # Validate and save
+        if title and due_date and grade and section:
+            assignment = Assignment.objects.create(
+                title=title,
+                subject=subject,
+                due_date=due_date,
+                description=description,
+                assignment_file=file,
+                created_by=request.user,
+                grade=grade,
+                section=section,
+                school=request.user.school,
+            )
+            messages.success(request, "✅ Assignment created successfully.")
+        else:
+            messages.error(request, "❌ Title, Due Date, Grade, and Section are required.")
+
+        return redirect('assignment')
+
+    return redirect('assignment')
