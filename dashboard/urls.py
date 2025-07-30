@@ -67,6 +67,15 @@ urlpatterns = [
     path('teacher/profile/', profile, name='profile'),
 
     
+
+    path('assignment/', assignment_view, name='assignment'),
+    path('create/assignment/', create_assignment, name='create_assignment'),
+    path('assignments/<int:pk>/edit/', edit_assignment, name='edit_assignment'),
+    path('assignments/<int:pk>/remark/', add_remark, name='add_remark'),
+    path('assignments/<int:pk>/delete/', delete_assignment, name="delete_assignment"),
+    path('assignments/<int:pk>/download/', download_assignment_file, name='download_assignment'),
+
+
     
 
     # path('core',code)

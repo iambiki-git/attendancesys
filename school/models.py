@@ -147,4 +147,23 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
 
-   
+
+class Assignment(models.Model):
+    title = models.CharField(max_length=255)
+    subject = models.CharField(max_length=100, blank=True)  # blank=True allows unassigned teachers to skip
+    description = models.TextField(blank=True)
+    due_date = models.DateField()
+    assignment_file = models.FileField(upload_to='assignments/', null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, null=True, blank=True)
+
+    # Optional grade & section fields
+    grade = models.ForeignKey(Grade, null=True, blank=True, on_delete=models.SET_NULL)
+    section = models.ForeignKey(Section, null=True, blank=True, on_delete=models.SET_NULL)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    remark = models.TextField(blank=True, null=True)
+
+
+    def __str__(self):
+        return self.title

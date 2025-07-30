@@ -106,20 +106,47 @@
               <td class="px-6 py-4">Grade {{ r.grade.grade_number }}</td>
               <td class="px-6 py-4">{{ r.section.name }}</td>
               <td class="px-6 py-4 text-center">
-                {% if forloop.first %}
-                <a href="{% url 'attendance' %}"
-                  class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M5 13l4 4L19 7" />
-                  </svg>
-                  Take Attendance
-                </a>
+                {% if forloop.first %} 
+                  <div class="flex flex-col items-center gap-2 md:flex-row md:justify-center">
+                    <!-- Take Attendance Button -->
+                    <a href="{% url 'attendance' %}"
+                      class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Take Attendance
+                    </a>
+
+                    |
+                    
+                    
                 {% else %}
-                <span class="text-gray-400 text-xs">—</span>
-                {% endif %}
+                  {% comment %} <span class="text-gray-400 text-xs">—</span>  {% endcomment %}
+                {% endif %} 
+                  <!-- Add Assignment Button -->
+                    <button
+  type="button"
+  class="add-assignment-button inline-flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline transition"
+  data-period-id="{{ r.id }}"
+  data-subject="{{ r.subject.name }}"
+  data-grade="{{ r.grade.grade_number }}"
+  data-section="{{ r.section.name }}"
+  onclick="openAssignmentModal(this)"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+  </svg>
+  Add Assignment
+</button>
+
+
+                    
+                  </div>
+
               </td>
+
             </tr>
             {% endfor %}
           </tbody>
@@ -147,8 +174,62 @@
       </div>
       {% endif %}
     </div>
+  </div>
 
+  {% comment %} assignemnt model {% endcomment %}
+  <div id="assignmentModal" x-transition class="fixed inset-0 flex items-center justify-center z-50 bg-black/40 backdrop-blur-sm"
+       style="display: none;">
+    <div @click.away="openModal = false"
+         class="bg-white rounded-2xl w-full max-w-xl p-6 shadow-xl transform transition-all">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">➕ New Assignment</h2>
+        <button id="closeModal" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button>
+      </div>
 
+      <form action="{% url 'create_assignment' %}" method="POST" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="period_id" id="periodIdField">
+        <input type="hidden" name="subject" id="subjectField">
+        <input type="hidden" name="grade" id="gradeField">
+        <input type="hidden" name="section" id="sectionField">
+
+        <div class="grid grid-cols-1 gap-4">
+            <div>
+                <label class="text-sm text-gray-600 block mb-1">Title *</label>
+                <input type="text" name="title"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Assignment title" required>
+            </div>
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-600 block mb-1">Due Date *</label>
+          <input type="date" name="due_date"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required>
+        </div>
+        <div>
+        <label class="text-sm text-gray-600 block mb-1">Attach File</label>
+        <input type="file" name="assignment_file"
+            class="w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:px-4 file:py-2 file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+        <p class="text-xs text-gray-400 mt-1">Allowed: PDF, DOCX, PPT, Images (max ~200kb)</p>
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-600 block mb-1">Description</label>
+          <textarea name="description" rows="3"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Optional assignment details..."></textarea>
+        </div>
+        <div class="pt-4 text-right">
+          <button type="submit"
+            class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-md font-medium hover:scale-105 transition transform">
+            💾 Save
+          </button>
+        </div>
+      </form>
+      
+    </div>
   </div>
 
 <script>
@@ -168,5 +249,33 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock(); // Initialize immediately
+
+
+
+  function openAssignmentModal(button) {
+    // Get data from button
+    const periodId = button.dataset.periodId;
+    const subject = button.dataset.subject;
+    const grade = button.dataset.grade;
+    const section = button.dataset.section;
+
+    console.log("period id", periodId);
+    console.log(subject);
+    console.log(grade);
+    console.log(section);
+
+    // Fill hidden form fields
+    document.getElementById('periodIdField').value = periodId;
+    document.getElementById('subjectField').value = subject;
+
+    // Show the modal
+    document.getElementById('assignmentModal').style.display = 'flex';
+  }
+
+  // Close modal
+  document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('assignmentModal').style.display = 'none';
+  });
+
 </script>
 {% endblock %}
