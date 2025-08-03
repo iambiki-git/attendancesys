@@ -89,3 +89,14 @@ def add_school(request):
     
     return redirect('school_list')
 
+
+
+from django.db.models import Count
+def school_wise_student(request):
+    school_list = School.objects.annotate(student_count=Count('student'))
+
+
+    context = {
+        'school_list': school_list,
+    }
+    return render(request, 'superadmin/school_wise_student.html', context)

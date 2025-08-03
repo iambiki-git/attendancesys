@@ -1,6 +1,10 @@
 {% load custom_tags %}
-<nav class="no-print bg-white shadow-sm">
-  <div class="max-w-8xl mx-auto px-10">
+    
+  <nav class="no-print">
+    {% if request.user.is_staff %}
+      <div class="max-w-8xl bg-slate-800">
+    {% endif %}
+    <div class="max-w-8xl mx-auto px-10">
     <div class="flex justify-between h-16">
       <!-- Left side - Logo/School Name -->
       <div class="flex items-center">
@@ -14,6 +18,21 @@
             {{ request.user.school.name|short_school_name }}
           </span>
         </div>
+        {% elif request.user.is_staff %}
+        <div class="flex-shrink-0 flex items-center group">
+          <div class="p-2 rounded-full bg-white border-2 border-blue-500 shadow-sm">
+            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          
+          <!-- Text Container -->
+          <div class="ml-3">
+            <span class="text-lg font-semibold text-gray-200 tracking-tight leading-tight">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+            <span class="block text-xs text-gray-300 font-medium">Superadmin Panel</span>
+          </div>
+        </div>
+
         {% elif request.user.is_teacher %}
         <div class="flex items-center gap-4">
           <!-- Avatar with subtle shadow -->
@@ -108,6 +127,50 @@
         class="{% if request.resolver_match.url_name == 'teacher_announcement' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
         Announcement
       </a>
+      {% elif request.user.is_staff %}
+      <nav class="shadow-sm bg-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex space-x-8">
+              <!-- Staff Navigation Links -->
+              <a href="/" 
+                class="{% if request.resolver_match.url_name == 'teacher_dashboard' %}border-indigo-600 text-gray-400{% else %}border-transparent text-gray-300 hover:text-gray-400 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                Dashboard
+              </a>
+              
+              <a href="#" 
+                class="{% if request.resolver_match.url_name == 'attendance' %}border-indigo-600 text-gray-400{% else %}border-transparent text-gray-300 hover:text-gray-400 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                Users
+              </a>
+              
+              <a href="#" 
+                class="{% if request.resolver_match.url_name == 'teacher_routine' %}border-indigo-600 text-gray-400{% else %}border-transparent text-gray-300 hover:text-gray-400 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Settings
+              </a>
+              
+              <a href="#" 
+                class="{% if request.resolver_match.url_name == 'assignment' %}border-indigo-600 text-gray-400{% else %}border-transparent text-gray-300 hover:text-gray-400 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Reports
+              </a>
+            </div>
+            
+            <!-- User profile dropdown would go here -->
+          </div>
+        </div>
+      </nav>
 
       {% endif %}
 
@@ -119,7 +182,11 @@
           <div>
             <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
               <span class="sr-only">Open user menu</span>
-              {% if request.user.is_school_admin %}
+              {% if request.user.is_staff %}
+              <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                {{ request.user.first_name|first }}{{ request.user.last_name|first }}
+              </div>
+              {% elif request.user.is_school_admin %}
               <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
                 {{ request.user.school.name|first }}
               </div>
